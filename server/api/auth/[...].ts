@@ -1,80 +1,93 @@
-import { H3Event, createError } from 'h3'
-import PocketBase from 'pocketbase'
-import { sessionStore } from '../../services/session'
-import { auditLogger } from '../../services/audit'
-import { generateSessionId } from '../../utils/session'
+import { createError, defineEventHandler, getQuery, readBody, setCookie, deleteCookie, getCookie } from 'h3'
+import { sessionStore } from '~/server/services/session'
+import { usePocketBase } from '~/services/pocketbase'
+import type { RecordModel } from 'pocketbase'
 
-const pb = new PocketBase(useRuntimeConfig().public.pocketbaseUrl)
+interface AuthResponse {
+  token: string
+  record: RecordModel
+}
 
-export default defineEventHandler(async (event: H3Event) => {
+interface RefreshResponse {
+  token: string
+}
+
+const REFRESH_TOKEN_COOKIE = 'refresh_token'
+const SESSION_COOKIE = 'session_id'
+const TOKEN_EXPIRY = 30 * 60 * 1000 // 30 minutes
+const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60 * 1000 // 7 days
+
+export default defineEventHandler(async (event) => {
+  const path = event.path || ''
   const method = event.method
-  const path = event.path
 
-  if (method === 'POST' && path.endsWith('/login')) {
-    return handleLogin(event)
+  // Handle refresh token
+  if (path.endsWith('/refresh') && method === 'POST') {
+    const refreshToken = getCookie(event, REFRESH_TOKEN_COOKIE)
+    if (!refreshToken) {
+      throw createError({
+        statusCode: 401,
+        message: 'No refresh token provided'
+      })
+    }
+
+    try {
+      const pb = usePocketBase()
+      const result = await pb?.refreshAuth() as AuthResponse
+      
+      if (!result?.token) {
+        throw new Error('Failed to refresh token')
+      }
+
+      // Update session
+      const sessionId = getCookie(event, SESSION_COOKIE)
+      if (sessionId) {
+        await sessionStore.set(sessionId, {
+          userId: result.record.id,
+          email: result.record.email,
+          token: result.token,
+          role: result.record.role
+        }, TOKEN_EXPIRY)
+      }
+
+      return { token: result.token } as RefreshResponse
+    } catch (error: any) {
+      throw createError({
+        statusCode: 401,
+        message: error.message || 'Failed to refresh token'
+      })
+    }
   }
 
-  if (method === 'POST' && path.endsWith('/logout')) {
-    return handleLogout(event)
+  // Handle setting refresh token
+  if (path.endsWith('/set-refresh-token') && method === 'POST') {
+    const body = await readBody(event)
+    if (!body.refreshToken) {
+      throw createError({
+        statusCode: 400,
+        message: 'No refresh token provided in body'
+      })
+    }
+
+    setCookie(event, REFRESH_TOKEN_COOKIE, body.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: REFRESH_TOKEN_EXPIRY / 1000 // Convert to seconds
+    })
+
+    return { success: true }
+  }
+
+  // Handle clearing refresh token
+  if (path.endsWith('/clear-refresh-token') && method === 'POST') {
+    deleteCookie(event, REFRESH_TOKEN_COOKIE)
+    deleteCookie(event, SESSION_COOKIE)
+    return { success: true }
   }
 
   throw createError({
     statusCode: 404,
     message: 'Not found'
   })
-})
-
-async function handleLogin(event: H3Event) {
-  const { email, password } = await readBody(event)
-  
-  try {
-    const authData = await pb.collection('admins').authWithPassword(email, password)
-    const sessionId = generateSessionId()
-    
-    // Get user role
-    const role = await pb.collection('admin_roles').getFirstListItem(`user_id="${authData.record.id}"`)
-    
-    // Store session data
-    await sessionStore.set(sessionId, {
-      userId: authData.record.id,
-      email: authData.record.email,
-      token: authData.token,
-      role: role.role_name
-    }, 14 * 24 * 60 * 60 * 1000) // 14 days
-
-    // Set session cookie
-    setCookie(event, 'session_id', sessionId, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      maxAge: 14 * 24 * 60 * 60 // 14 days
-    })
-
-    await auditLogger.log(event, 'login', 'success', { email, role: role.role_name })
-
-    return {
-      user: {
-        ...authData.record,
-        role: role.role_name
-      },
-      token: authData.token
-    }
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    await auditLogger.log(event, 'login', 'failure', { email, error: errorMessage })
-    throw error
-  }
-}
-
-async function handleLogout(event: H3Event) {
-  const sessionId = getCookie(event, 'session_id')
-  if (sessionId) {
-    const session = await sessionStore.get(sessionId)
-    if (session) {
-      await auditLogger.log(event, 'logout', 'success', { email: session.email })
-    }
-    await sessionStore.delete(sessionId)
-    deleteCookie(event, 'session_id')
-  }
-  return { success: true }
-} 
+}) 
