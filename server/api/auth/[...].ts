@@ -20,6 +20,7 @@ const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60 * 1000 // 7 days
 export default defineEventHandler(async (event) => {
   const path = event.path || ''
   const method = event.method
+  console.log(path, method)
 
   // Handle refresh token
   if (path.endsWith('/refresh') && method === 'POST') {
