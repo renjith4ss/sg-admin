@@ -9,7 +9,7 @@ export interface Plan {
   trialPeriodDays: number
   currency: string
   features: string[]
-  is_special: boolean
+  isSpecial: boolean
   deleted: boolean
   stripeProductId: string
   stripeMonthlyPriceId: string
