@@ -1,21 +1,29 @@
 import { defineStore } from 'pinia'
-import type { Plan } from '~/types/plans'
 import { plansApi } from '~/services/api/plans'
-
-interface PlansState {
-  plans: Plan[]
-  isLoading: boolean
-  error: string | null
-  currentPlan: Plan | null
-}
+import type { Plan, PlansState } from '~/types/plans'
 
 export const usePlansStore = defineStore('plans', {
   state: (): PlansState => ({
     plans: [],
+    currentPlan: null,
     isLoading: false,
-    error: null,
-    currentPlan: null
+    error: null
   }),
+
+  getters: {
+    getActivePlans(state: PlansState): Plan[] {
+      return state.plans.filter((p: Plan) => !p.deleted)
+    },
+    getAddonPlans(state: PlansState): Plan[] {
+      return state.plans.filter((p: Plan) => p.isAddon)
+    },
+    getRegularPlans(state: PlansState): Plan[] {
+      return state.plans.filter((p: Plan) => !p.isAddon)
+    },
+    getPlanById(state: PlansState) {
+      return (id: string): Plan | undefined => state.plans.find((p: Plan) => p.id === id)
+    }
+  },
 
   actions: {
     async fetchPlans() {
@@ -23,7 +31,9 @@ export const usePlansStore = defineStore('plans', {
       this.error = null
       
       try {
-        this.plans = await plansApi.getAll()
+        const plans = await plansApi.getAll()
+        this.plans = plans
+        return plans
       } catch (err: any) {
         this.error = err.message || 'Failed to fetch plans'
         throw err
@@ -39,7 +49,7 @@ export const usePlansStore = defineStore('plans', {
       try {
         const plan = await plansApi.create(planData)
         if (plan) {
-          this.plans.unshift(plan)
+          this.plans.push(plan)
         }
         return plan
       } catch (err: any) {
@@ -57,16 +67,12 @@ export const usePlansStore = defineStore('plans', {
       try {
         const plan = await plansApi.update(id, planData)
         if (plan) {
-          const index = this.plans.findIndex(p => p.id === id)
+          const index = this.plans.findIndex((p: Plan) => p.id === id)
           if (index !== -1) {
             this.plans[index] = plan
           }
-          if (this.currentPlan?.id === id) {
-            this.currentPlan = plan
-          }
-          return plan
         }
-        return null
+        return plan
       } catch (err: any) {
         this.error = err.message || 'Failed to update plan'
         throw err
@@ -81,9 +87,9 @@ export const usePlansStore = defineStore('plans', {
       
       try {
         await plansApi.delete(id)
-        this.plans = this.plans.filter(p => p.id !== id)
-        if (this.currentPlan?.id === id) {
-          this.currentPlan = null
+        const index = this.plans.findIndex((p: Plan) => p.id === id)
+        if (index !== -1) {
+          this.plans.splice(index, 1)
         }
       } catch (err: any) {
         this.error = err.message || 'Failed to delete plan'
@@ -93,13 +99,21 @@ export const usePlansStore = defineStore('plans', {
       }
     },
 
-    async getPlan(id: string) {
+    async fetchPlan(id: string) {
       this.isLoading = true
       this.error = null
       
       try {
         const plan = await plansApi.getOne(id)
-        this.currentPlan = plan
+        if (plan) {
+          this.currentPlan = plan
+          const index = this.plans.findIndex((p: Plan) => p.id === id)
+          if (index !== -1) {
+            this.plans[index] = plan
+          } else {
+            this.plans.push(plan)
+          }
+        }
         return plan
       } catch (err: any) {
         this.error = err.message || 'Failed to fetch plan'

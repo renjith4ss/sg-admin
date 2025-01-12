@@ -1,7 +1,9 @@
+import { fontFamily } from "tailwindcss/defaultTheme"
+
 const animate = require("tailwindcss-animate")
 
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
   darkMode: ["class"],
   safelist: ["dark"],
   prefix: "",
@@ -79,6 +81,10 @@ module.exports = {
         "accordion-up": "accordion-up 0.2s ease-out",
         "collapsible-down": "collapsible-down 0.2s ease-in-out",
         "collapsible-up": "collapsible-up 0.2s ease-in-out",
+      },
+      fontFamily: {
+        sans: ["Geist", ...fontFamily.sans],
+        heading: ["Geist", ...fontFamily.sans],
       },
     },
   },

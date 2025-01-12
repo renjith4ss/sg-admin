@@ -1,61 +1,28 @@
 import type { Plan } from '~/types/plans'
-import { usePocketBase } from '../pocketbase'
+import ApiClient from '../client'
 
-export const plansApi = {
-  async getAll() {
-    const pb = usePocketBase()
-    const records = await pb?.collection('subscription_plans').getFullList({
-      sort: '-created'
-    })
-    return (records || []).map(mapRecordToPlan)
-  },
+class PlansApi extends ApiClient {
+  private readonly resource = 'plans'
 
-  async create(planData: Omit<Plan, 'id' | 'created' | 'updated'>) {
-    const pb = usePocketBase()
-    const record = await pb?.collection('subscription_plans').create(planData)
-    return record ? mapRecordToPlan(record) : null
-  },
+  async getAll(): Promise<Plan[]> {
+    return this.get(`${this.resource}`)
+  }
 
-  async update(id: string, planData: Partial<Omit<Plan, 'id' | 'created' | 'updated'>>) {
-    const pb = usePocketBase()
-    const record = await pb?.collection('subscription_plans').update(id, planData)
-    return record ? mapRecordToPlan(record) : null
-  },
+  async create(planData: Omit<Plan, 'id' | 'created' | 'updated'>): Promise<Plan | null> {
+    return this.post(`${this.resource}`, planData)
+  }
 
-  async delete(id: string) {
-    const pb = usePocketBase()
-    await pb?.collection('subscription_plans').delete(id)
-  },
+  async update(id: string, planData: Partial<Omit<Plan, 'id' | 'created' | 'updated'>>): Promise<Plan | null> {
+    return this.patch(`${this.resource}/${id}`, planData)
+  }
 
-  async getOne(id: string) {
-    const pb = usePocketBase()
-    const record = await pb?.collection('subscription_plans').getOne(id)
-    return record ? mapRecordToPlan(record) : null
+  override async delete(id: string): Promise<void> {
+    return super.delete(`${this.resource}/${id}`)
+  }
+
+  async getOne(id: string): Promise<Plan | null> {
+    return this.get(`${this.resource}/${id}`)
   }
 }
 
-function mapRecordToPlan(record: any): Plan {
-  return {
-    id: record.id,
-    name: record.name,
-    description: record.description,
-    yearlyPrice: record.yearlyPrice,
-    monthlyPrice: record.monthlyPrice,
-    yearlyDiscount: record.yearlyDiscount,
-    monthlyDiscount: record.monthlyDiscount,
-    trialPeriodDays: record.trialPeriodDays,
-    currency: record.currency,
-    features: record.features,
-    is_special: record.is_special,
-    deleted: record.deleted,
-    stripeProductId: record.stripeProductId,
-    stripeMonthlyPriceId: record.stripeMonthlyPriceId,
-    stripeYearlyPriceId: record.stripeYearlyPriceId,
-    isAddon: record.isAddon,
-    displayCount: record.displayCount,
-    storage: record.storage,
-    maxMembers: record.maxMembers,
-    created: record.created,
-    updated: record.updated
-  }
-} 
+export const plansApi = new PlansApi() 

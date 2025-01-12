@@ -1,15 +1,34 @@
 export interface User {
   id: string
   email: string
-  name: string
-  avatar?: string
+  emailVisibility: boolean
+  username: string
+  verified: boolean
+  first_name: string
+  last_name: string
+  avatar: string
+  active: boolean
+  deleted: boolean
   created: string
   updated: string
+  collectionId: string
+  collectionName: string
+  is_display: boolean
+  level: string
+  roles: string[]
+  tenant: string
+  type: string
+  owner: string
+  eroot: string
+  froot: string
+  needsMfa?: boolean
+  mfaId?: string
 }
 
 export interface LoginCredentials {
   email: string
   password: string
+  rememberMe?: boolean
 }
 
 export interface PasswordResetRequest {
@@ -23,7 +42,22 @@ export interface PasswordResetConfirmation {
 }
 
 export interface AuthState {
-  user: User | null
   isLoading: boolean
   error: string | null
+}
+
+export interface OTPRequest {
+  otpId: string
+  code: string
+  mfaId?: string
+}
+
+export interface OTPResponse {
+  otpId: string
+  expiresIn: number
+}
+
+export interface MFAResponse {
+  needsMfa: true
+  mfaId: string
 } 

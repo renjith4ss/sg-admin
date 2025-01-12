@@ -1,111 +1,115 @@
 <template>
-  <div class="relative flex h-screen">
-    <!-- Vertical Navigation -->
-    <nav
-      class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transition-transform dark:bg-gray-800"
-      :class="{ '-translate-x-full': !isSidebarOpen }"
-    >
-      <!-- Logo -->
-      <div class="flex h-16 items-center border-b px-6">
-        <h1 class="text-xl font-bold text-gray-900 dark:text-white">Showground Admin</h1>
-      </div>
-
-      <!-- Navigation Items -->
-      <div class="space-y-2 px-4 py-6">
-        <NuxtLink
-          v-for="item in navigationItems"
-          :key="item.route"
-          :to="item.route"
-          class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
-          :class="{ 'bg-amber-50 text-amber-600 dark:bg-amber-900/50 dark:text-amber-500': route.path.startsWith(item.route) }"
-        >
-          <Icon :name="item.icon" class="h-5 w-5" />
-          {{ item.label }}
-        </NuxtLink>
-      </div>
-    </nav>
-
-    <!-- Main Content -->
-    <div class="flex flex-1 flex-col lg:pl-64">
-      <!-- Top Header -->
-      <header class="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-white px-4 dark:bg-gray-800 sm:px-6">
-        <!-- Mobile Menu Button -->
-        <div ref="mobileMenuRef">
-          <button
-            @click="toggleSidebar"
-            class="inline-flex items-center justify-center rounded-lg p-2 text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-amber-500 lg:hidden"
-          >
-            <Icon v-if="isSidebarOpen" name="heroicons:x-mark" class="h-6 w-6" />
-            <Icon v-else name="heroicons:bars-3" class="h-6 w-6" />
-          </button>
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <!-- Sidebar -->
+    <aside class="fixed left-0 top-0 z-40 h-screen w-64 border-r border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+      <div class="flex h-full flex-col">
+        <!-- Logo -->
+        <div class="flex h-16 items-center gap-2 border-b border-gray-200 px-4 dark:border-gray-800">
+          <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900">
+            <Icon name="ph:gear-fill" class="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          </div>
+          <span class="text-lg font-semibold text-gray-900 dark:text-white">Admin Portal</span>
         </div>
 
-        <!-- Right Side Actions -->
+        <!-- Navigation -->
+        <nav class="flex-1 space-y-1 px-2 py-4">
+          <NuxtLink
+            v-for="item in navigationItems"
+            :key="item.name"
+            :to="item.to"
+            :class="[
+              'group flex items-center rounded-lg px-3 py-2 text-sm font-medium',
+              $route.path === item.to
+                ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400'
+                : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800'
+            ]"
+          >
+            <Icon
+              :name="item.icon"
+              :class="[
+                'mr-3 h-5 w-5',
+                $route.path === item.to
+                  ? 'text-blue-600 dark:text-blue-400'
+                  : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-500 dark:group-hover:text-gray-400'
+              ]"
+            />
+            {{ item.name }}
+          </NuxtLink>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <div class="pl-64">
+      <!-- Top bar -->
+      <header class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 dark:border-gray-800 dark:bg-gray-900">
+        <!-- Search -->
+        <div class="flex flex-1 items-center">
+          <div class="w-96">
+            <div class="relative">
+              <Icon
+                name="ph:magnifying-glass"
+                class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+              />
+              <Input
+                type="search"
+                placeholder="Search..."
+                class="pl-10"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Right side buttons -->
         <div class="flex items-center gap-4">
-          <!-- Theme Toggle -->
-          <div ref="themeMenuRef">
-            <button
-              @click="isThemeMenuOpen = !isThemeMenuOpen"
-              class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:text-gray-400 dark:hover:bg-gray-700"
-            >
-              <Icon v-if="isDark" name="heroicons:sun" class="h-5 w-5" />
-              <Icon v-else name="heroicons:moon" class="h-5 w-5" />
-            </button>
+          <!-- Theme toggle -->
+          <Button
+            variant="ghost"
+            size="icon"
+            @click="toggleTheme"
+          >
+            <Icon
+              :name="$colorMode.value === 'dark' ? 'ph:sun-bold' : 'ph:moon-bold'"
+              class="h-5 w-5"
+            />
+          </Button>
 
-            <!-- Theme Menu -->
-            <div
-              v-if="isThemeMenuOpen"
-              class="absolute right-0 mt-2 w-48 rounded-lg bg-white py-2 shadow-lg dark:bg-gray-800"
-            >
-              <button
-                @click="setTheme('light')"
-                class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+          <!-- User menu -->
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <Button
+                variant="ghost"
+                class="relative h-8 w-8 rounded-full"
               >
-                Light Mode
-              </button>
-              <button
-                @click="setTheme('dark')"
-                class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
-              >
-                Dark Mode
-              </button>
-              <button
-                @click="setTheme('system')"
-                class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
-              >
-                System
-              </button>
-            </div>
-          </div>
-
-          <!-- User Menu -->
-          <div class="relative" ref="userMenuRef">
-            <button
-              @click="isUserMenuOpen = !isUserMenuOpen"
-              class="flex items-center gap-2 rounded-lg p-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:text-gray-200 dark:hover:bg-gray-700"
-            >
-              <div class="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700"></div>
-              <span>Admin</span>
-            </button>
-
-            <!-- Dropdown Menu -->
-            <div
-              v-if="isUserMenuOpen"
-              class="absolute right-0 mt-2 w-48 rounded-lg bg-white py-2 shadow-lg dark:bg-gray-800"
-            >
-              <button
-                @click="handleLogout"
-                class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
+                <Avatar>
+                  <AvatarImage src="" />
+                  <AvatarFallback>
+                    {{ userInitials }}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" class="w-56">
+              <DropdownMenuLabel class="font-normal">
+                <div class="flex flex-col space-y-1">
+                  <p class="text-sm font-medium leading-none">{{ user?.name }}</p>
+                  <p class="text-xs leading-none text-gray-500 dark:text-gray-400">
+                    {{ user?.email }}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem @click="handleLogout">
+                <Icon name="ph:sign-out" class="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
-      <!-- Page Content -->
-      <main class="flex-1 bg-gray-50 px-4 py-8 dark:bg-gray-900 sm:px-6 lg:px-8">
+      <!-- Page content -->
+      <main class="min-h-[calc(100vh-4rem)] p-4">
         <slot />
       </main>
     </div>
@@ -113,83 +117,64 @@
 </template>
 
 <script setup lang="ts">
-import { onClickOutside } from '@vueuse/core'
-
-const route = useRoute()
-const { logout } = useAuth()
+const colorMode = useColorMode()
 const router = useRouter()
+const { logout } = useAuth()
 
-const isSidebarOpen = ref(true)
-const isUserMenuOpen = ref(false)
-const isDark = computed(() => useColorMode().value === 'dark')
+// Dummy user data - replace with real data later
+const user = ref({
+  name: 'Admin User',
+  email: 'admin@example.com'
+})
+
+const userInitials = computed(() => {
+  if (!user.value?.name) return 'AU'
+  return user.value.name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+})
 
 const navigationItems = [
   {
-    label: 'Dashboard',
-    icon: 'heroicons:home',
-    route: '/'
+    name: 'Dashboard',
+    to: '/',
+    icon: 'ph:squares-four'
   },
   {
-    label: 'Organizations',
-    icon: 'heroicons:building-office',
-    route: '/organizations'
+    name: 'Organizations',
+    to: '/organizations',
+    icon: 'ph:buildings'
   },
   {
-    label: 'Users',
-    icon: 'heroicons:users',
-    route: '/users'
+    name: 'Users',
+    to: '/users',
+    icon: 'ph:users'
   },
   {
-    label: 'Displays',
-    icon: 'heroicons:tv',
-    route: '/displays'
+    name: 'Displays',
+    to: '/displays',
+    icon: 'ph:monitor'
   },
   {
-    label: 'Plans',
-    icon: 'heroicons:credit-card',
-    route: '/plans'
+    name: 'Plans',
+    to: '/plans',
+    icon: 'ph:currency-circle-dollar'
+  },
+  {
+    name: 'Invoices',
+    to: '/invoices',
+    icon: 'ph:receipt'
   }
 ]
 
-function toggleSidebar() {
-  isSidebarOpen.value = !isSidebarOpen.value
-}
-
 function toggleTheme() {
-  const colorMode = useColorMode()
   colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
 }
 
 async function handleLogout() {
   await logout()
   router.push('/login')
-}
-
-const userMenuRef = ref(null)
-const mobileMenuRef = ref(null)
-const themeMenuRef = ref(null)
-const isThemeMenuOpen = ref(false)
-
-// Close user menu when clicking outside
-onClickOutside(userMenuRef, () => {
-  isUserMenuOpen.value = false
-})
-
-// Close mobile menu when clicking outside on mobile
-onClickOutside(mobileMenuRef, () => {
-  if (window.innerWidth < 1024) { // lg breakpoint
-    isSidebarOpen.value = false
-  }
-})
-
-// Close theme menu when clicking outside
-onClickOutside(themeMenuRef, () => {
-  isThemeMenuOpen.value = false
-})
-
-function setTheme(theme: 'light' | 'dark' | 'system') {
-  const colorMode = useColorMode()
-  colorMode.preference = theme
-  isThemeMenuOpen.value = false
 }
 </script> 

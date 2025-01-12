@@ -15,11 +15,18 @@ export interface Plan {
   stripeMonthlyPriceId: string
   stripeYearlyPriceId: string
   isAddon: boolean
-  displayCount: number | null
-  storage: number | null
-  maxMembers: number | null
+  displayCount: number
+  storage: number
+  maxMembers: number
   created: string
   updated: string
+}
+
+export interface PlansState {
+  plans: Plan[]
+  currentPlan: Plan | null
+  isLoading: boolean
+  error: string | null
 }
 
 export interface ValidationError {

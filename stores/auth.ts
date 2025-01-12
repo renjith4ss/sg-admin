@@ -1,27 +1,31 @@
 import { defineStore } from 'pinia'
+import type { RecordModel } from 'pocketbase'
 import { authApi } from '~/services/api/auth'
-import type { User, LoginCredentials, AuthState, PasswordResetConfirmation } from '~/types/auth'
+import type { User, LoginCredentials, AuthState, PasswordResetConfirmation, OTPRequest, OTPResponse, MFAResponse } from '~/types/auth'
 
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
-    user: null,
     isLoading: false,
-    error: null
+    error: null,
   }),
 
   getters: {
-    isAuthenticated: (state) => !!state.user,
+    user: () => authApi.getUser(),
+    isAuthenticated: () => authApi.isAuthenticated(),
+    isTokenExpired: () => authApi.isTokenExpired()
   },
 
   actions: {
-    async login(credentials: LoginCredentials) {
+    async login(credentials: LoginCredentials): Promise<User | MFAResponse> {
       this.isLoading = true
       this.error = null
       
       try {
-        const user = await authApi.login(credentials)
-        this.user = user
-        return user
+        const result = await authApi.login(credentials)
+        if ('needsMfa' in result) {
+          return result
+        }
+        return result
       } catch (err: any) {
         this.error = err.message || 'Failed to login'
         throw err
@@ -36,25 +40,8 @@ export const useAuthStore = defineStore('auth', {
       
       try {
         await authApi.logout()
-        this.user = null
       } catch (err: any) {
         this.error = err.message || 'Failed to logout'
-        throw err
-      } finally {
-        this.isLoading = false
-      }
-    },
-
-    async getCurrentUser() {
-      this.isLoading = true
-      this.error = null
-      
-      try {
-        const user = await authApi.getCurrentUser()
-        this.user = user
-        return user
-      } catch (err: any) {
-        this.error = err.message || 'Failed to get current user'
         throw err
       } finally {
         this.isLoading = false
@@ -66,9 +53,7 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       
       try {
-        const user = await authApi.refreshSession()
-        this.user = user
-        return user
+        await authApi.refreshSession()
       } catch (err: any) {
         this.error = err.message || 'Failed to refresh session'
         throw err
@@ -85,9 +70,6 @@ export const useAuthStore = defineStore('auth', {
       
       try {
         const user = await authApi.updateProfile(this.user.id, data)
-        if (user) {
-          this.user = user
-        }
         return user
       } catch (err: any) {
         this.error = err.message || 'Failed to update profile'
@@ -123,8 +105,36 @@ export const useAuthStore = defineStore('auth', {
       } finally {
         this.isLoading = false
       }
-    }
-  },
+    },
 
-  persist: true
+    async requestOTP(email: string): Promise<OTPResponse> {
+      this.isLoading = true
+      this.error = null
+      
+      try {
+        const result = await authApi.requestOTP(email)
+        return result
+      } catch (err: any) {
+        this.error = err.message || 'Failed to request OTP'
+        throw err
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    async verifyOTP(params: OTPRequest): Promise<User | null> {
+      this.isLoading = true
+      this.error = null
+      
+      try {
+        const user = await authApi.verifyOTP(params)
+        return user
+      } catch (err: any) {
+        this.error = err.message || 'Failed to verify OTP'
+        throw err
+      } finally {
+        this.isLoading = false
+      }
+    }
+  }
 }) 

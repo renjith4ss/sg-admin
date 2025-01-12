@@ -1,62 +1,134 @@
 import type { RecordModel } from 'pocketbase'
-import type { User, LoginCredentials, PasswordResetConfirmation } from '~/types/auth'
-import { usePocketBase } from '../pocketbase'
+import type { User, LoginCredentials, PasswordResetConfirmation, OTPRequest, OTPResponse, MFAResponse } from '~/types/auth'
+import { usePocketBaseService } from '../pocketbase'
 
 function mapRecordToUser(record: RecordModel): User {
   return {
     id: record.id,
     email: record.email,
-    name: record.name,
+    emailVisibility: record.emailVisibility,
+    username: record.username,
+    verified: record.verified,
+    first_name: record.first_name,
+    last_name: record.last_name,
     avatar: record.avatar,
+    active: record.active,
+    deleted: record.deleted,
     created: record.created,
-    updated: record.updated
+    updated: record.updated,
+    collectionId: record.collectionId,
+    collectionName: record.collectionName,
+    is_display: record.is_display,
+    level: record.level,
+    roles: record.roles,
+    tenant: record.tenant,
+    type: record.type,
+    owner: record.owner,
+    eroot: record.eroot,
+    froot: record.froot,
+    needsMfa: record.needsMfa,
+    mfaId: record.mfaId
   }
 }
 
 export const authApi = {
-  async login(credentials: LoginCredentials) {
-    const pb = usePocketBase()
-    const authData = await pb?.collection('users').authWithPassword(
-      credentials.email,
-      credentials.password
-    )
-    return authData ? mapRecordToUser(authData.record) : null
+
+  isAuthenticated(): boolean {
+    const pb = usePocketBaseService()
+    return !!(pb?.authStore.isValid && pb?.authStore.token && pb?.authStore.record)
+  },
+
+  getUser() {
+    const pb = usePocketBaseService()
+    return pb?.authStore.record
+  },
+
+  isTokenExpired() {
+    const pb = usePocketBaseService()
+    return pb?.authStore.isValid
+  },
+
+  async login(credentials: LoginCredentials): Promise<User | MFAResponse> {
+    const pb = usePocketBaseService()
+    try {
+      const authData = await pb.adminLogin(
+        credentials.email,
+        credentials.password
+      )
+      const user = mapRecordToUser(authData.record)
+      
+      // Check if MFA is required
+      if (user.needsMfa && user.mfaId) {
+        return {
+          needsMfa: true,
+          mfaId: user.mfaId
+        }
+      }
+      
+      return user
+    } catch (error: any) {
+      if (error.data?.needsMfa && error.data?.mfaId) {
+        return {
+          needsMfa: true,
+          mfaId: error.data.mfaId
+        }
+      }
+      throw error
+    }
   },
 
   async logout() {
-    const pb = usePocketBase()
+    const pb = usePocketBaseService()
     pb?.authStore.clear()
   },
 
   async getCurrentUser() {
-    const pb = usePocketBase()
-    const authData = pb?.authStore.model
-    return authData ? mapRecordToUser(authData) : null
+    const pb = usePocketBaseService()
+    const user = pb?.authStore.record
+    return user ? mapRecordToUser(user) : null
   },
 
   async refreshSession() {
-    const pb = usePocketBase()
-    const authData = await pb?.collection('users').authRefresh()
+    const pb = usePocketBaseService()
+    const authData = await pb.refreshAuth()
     return authData ? mapRecordToUser(authData.record) : null
   },
 
   async updateProfile(userId: string, data: Partial<User>) {
-    const pb = usePocketBase()
+    const pb = usePocketBaseService()
     const record = await pb?.collection('users').update(userId, data)
     return record ? mapRecordToUser(record) : null
   },
 
   async requestPasswordReset(email: string) {
-    const pb = usePocketBase()
+    const pb = usePocketBaseService()
     await pb?.collection('users').requestPasswordReset(email)
   },
 
   async confirmPasswordReset(params: PasswordResetConfirmation) {
-    const pb = usePocketBase()
+    const pb = usePocketBaseService()
     await pb?.collection('users').confirmPasswordReset(
       params.token,
       params.password,
       params.passwordConfirm
     )
+  },
+
+  async requestOTP(email: string): Promise<OTPResponse> {
+    const pb = usePocketBaseService()
+    const result = await pb.collection('users').requestOTP(email)
+    return {
+      otpId: result.otpId,
+      expiresIn: 300 // 5 minutes
+    }
+  },
+
+  async verifyOTP(params: OTPRequest): Promise<User | null> {
+    const pb = usePocketBaseService()
+    const result = await pb.send('/api/users/verify-otp', {
+      method: 'POST',
+      body: params
+    })
+    return result?.record ? mapRecordToUser(result.record) : null
   }
 } 

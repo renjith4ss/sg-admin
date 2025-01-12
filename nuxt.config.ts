@@ -6,8 +6,11 @@ export default defineNuxtConfig({
     'shadcn-nuxt',
     '@pinia/nuxt',
     'pinia-plugin-persistedstate/nuxt',
-    '@nuxt/icon'
+    '@nuxt/icon',
+    '@nuxt/fonts'
   ],
+
+  css: ['~/assets/css/main.scss'],
 
   app: {
     head: {
@@ -15,6 +18,17 @@ export default defineNuxtConfig({
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' }
+      ],
+      link: [
+        {
+          rel: 'preconnect',
+          href: 'https://fonts.googleapis.com'
+        },
+        {
+          rel: 'preconnect',
+          href: 'https://fonts.gstatic.com',
+          crossorigin: ''
+        }
       ]
     }
   },
@@ -28,12 +42,23 @@ export default defineNuxtConfig({
   colorMode: {
     classSuffix: '',
     preference: 'system',
-    fallback: 'light'
+    fallback: 'light',
+    storage: 'cookie'
   },
 
   shadcn: {
     prefix: '',
     componentDir: './components/ui'
+  },
+
+  fonts: {
+    families: [
+      {
+        name: 'Geist',
+        provider: 'google',
+        weights: [400, 500, 600, 700],
+      }
+    ]
   },
 
   compatibilityDate: '2025-01-06'

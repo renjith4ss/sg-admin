@@ -197,7 +197,7 @@
     <!-- Create/Edit Dialog -->
     <Dialog 
       :open="showCreateDialog" 
-      @update:open="(value) => handleDialogClose('create', value)"
+      @update:open="(value: boolean) => handleDialogClose('create', value)"
     >
       <DialogContent class="sm:max-w-[1200px]">
         <DialogHeader>
@@ -425,7 +425,7 @@
             </Button>
             <Button
               type="submit"
-              :disabled="isSubmitting || (isEditing && !hasChanges())"
+              :disabled="isSubmitting || (isEditing && !hasChanges)"
             >
               {{ isSubmitting ? 'Saving...' : (isEditing ? 'Update' : 'Create') }}
             </Button>
@@ -441,7 +441,7 @@
     <!-- Delete Confirmation Dialog -->
     <Dialog 
       :open="showDeleteDialog" 
-      @update:open="(value) => handleDialogClose('delete', value)"
+      @update:open="(value: boolean) => handleDialogClose('delete', value)"
     >
       <DialogContent>
         <DialogHeader>
@@ -471,7 +471,7 @@
     <!-- Restore Dialog -->
     <Dialog 
       :open="showRestoreDialog" 
-      @update:open="(value) => handleDialogClose('restore', value)"
+      @update:open="(value: boolean) => handleDialogClose('restore', value)"
     >
       <DialogContent>
         <DialogHeader>
@@ -503,46 +503,35 @@
 </template>
 
 <script setup lang="ts">
-import type { Plan, ValidationError, ApiError, PlanTabValue, DialogType, PlanTab } from '~/types/plans'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle
-} from '~/components/ui/dialog'
-import {
-  Button,
-  buttonVariants
-} from '~/components/ui/button'
-import { Input } from '~/components/ui/input'
-import { Textarea } from '~/components/ui/textarea'
-import { Label } from '~/components/ui/label'
-import { Badge } from '~/components/ui/badge'
-import { Switch } from '~/components/ui/switch'
+import type { Plan, PlanTab, DialogType } from '~/types/plans'
+import { usePlans } from '~/composables/usePlans'
 
-definePageMeta({
-  middleware: ['auth']
-})
+const {
+  plans,
+  isLoading,
+  error,
+  activePlans: getActivePlans,
+  addonPlans: getAddonPlans,
+  regularPlans: getRegularPlans,
+  fetchPlans,
+  createPlan,
+  updatePlan,
+  deletePlan
+} = usePlans()
 
-const plansStore = usePlansStore()
-const { plans, isLoading } = storeToRefs(plansStore)
-
+// State
 const searchQuery = ref('')
+const showDeletedPlans = ref(false)
 const showCreateDialog = ref(false)
 const showDeleteDialog = ref(false)
 const showRestoreDialog = ref(false)
 const selectedPlan = ref<Plan | null>(null)
-const isEditing = ref(false)
-const showDeletedPlans = ref(false)
-const activeTab = ref<PlanTabValue>('tenant')
+const activeTab = ref<'tenant' | 'addon'>('tenant')
+const isSubmitting = ref(false)
+const formError = ref<string | null>(null)
 
-const tabs: PlanTab[] = [
-  { label: 'Plans', value: 'tenant' },
-  { label: 'Add-ons', value: 'addon' }
-]
-
-const formData = ref<Omit<Plan, 'id' | 'created' | 'updated'>>({
+// Form state
+const formData = reactive({
   name: '',
   description: '',
   yearlyPrice: 0,
@@ -551,7 +540,7 @@ const formData = ref<Omit<Plan, 'id' | 'created' | 'updated'>>({
   monthlyDiscount: 0,
   trialPeriodDays: 0,
   currency: 'USD',
-  features: [],
+  features: [] as string[],
   is_special: false,
   deleted: false,
   stripeProductId: '',
@@ -563,54 +552,56 @@ const formData = ref<Omit<Plan, 'id' | 'created' | 'updated'>>({
   maxMembers: 0
 })
 
-const tableHeaders = computed(() => {
-  const baseHeaders = [
-    { key: 'name', label: 'Name' },
-    { key: 'description', label: 'Description' },
-    { key: 'monthlyPrice', label: 'Monthly Price' },
-    { key: 'yearlyPrice', label: 'Yearly Price' }
-  ]
-
-  if (activeTab.value === 'tenant') {
-    return [
-      ...baseHeaders,
-      { key: 'maxMembers', label: 'Max Members' },
-      { key: 'storage', label: 'Storage (GB)' },
-      { key: 'displayCount', label: 'Display Count' }
-    ]
-  }
-
-  return baseHeaders
-})
-
+// Computed
 const filteredPlans = computed(() => {
-  // First filter by isAddon and deleted status
-  const plansByType = plans.value.filter(plan => 
-    (activeTab.value === 'addon' ? plan.isAddon : !plan.isAddon) && 
-    plan.deleted === showDeletedPlans.value
-  )
+  let filtered = activeTab.value === 'tenant' ? getRegularPlans.value : getAddonPlans.value
   
-  // Then apply search if query exists
-  if (!searchQuery.value) return plansByType
-
-  const query = searchQuery.value.toLowerCase()
-  return plansByType.filter(plan =>
-    plan.name.toLowerCase().includes(query) ||
-    plan.description.toLowerCase().includes(query) ||
-    plan.currency.toLowerCase().includes(query) ||
-    plan.monthlyPrice.toString().includes(query) ||
-    plan.yearlyPrice.toString().includes(query) ||
-    plan.features.some(feature => feature.toLowerCase().includes(query))
-  )
+  if (!showDeletedPlans.value) {
+    filtered = filtered.filter(plan => !plan.deleted)
+  }
+  
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    filtered = filtered.filter(plan => 
+      plan.name.toLowerCase().includes(query) ||
+      plan.description.toLowerCase().includes(query)
+    )
+  }
+  
+  return filtered
 })
 
-// Load plans on component mount
-onMounted(async () => {
-  await plansStore.fetchPlans()
+const isEditing = computed(() => !!selectedPlan.value)
+
+const hasChanges = computed(() => {
+  const plan = selectedPlan.value
+  if (!plan) return true
+  return Object.keys(formData).some(key => {
+    const formValue = formData[key as keyof typeof formData]
+    const originalValue = plan[key as keyof Plan]
+    return JSON.stringify(formValue) !== JSON.stringify(originalValue)
+  })
 })
 
-function resetForm() {
-  formData.value = {
+// Form computed values
+const maxMembersValue = computed({
+  get: () => formData.maxMembers,
+  set: (val: number) => formData.maxMembers = val
+})
+
+const storageValue = computed({
+  get: () => formData.storage,
+  set: (val: number) => formData.storage = val
+})
+
+const displayCountValue = computed({
+  get: () => formData.displayCount,
+  set: (val: number) => formData.displayCount = val
+})
+
+// Methods
+const resetForm = () => {
+  Object.assign(formData, {
     name: '',
     description: '',
     yearlyPrice: 0,
@@ -629,188 +620,146 @@ function resetForm() {
     displayCount: 0,
     storage: 0,
     maxMembers: 0
-  }
-  isEditing.value = false
-  selectedPlan.value = null
-}
-
-function editPlan(plan: Plan) {
-  isEditing.value = true
-  selectedPlan.value = plan
-  formData.value = {
-    name: plan.name,
-    description: plan.description,
-    yearlyPrice: plan.yearlyPrice,
-    monthlyPrice: plan.monthlyPrice,
-    yearlyDiscount: plan.yearlyDiscount,
-    monthlyDiscount: plan.monthlyDiscount,
-    trialPeriodDays: plan.trialPeriodDays,
-    currency: plan.currency || 'USD',
-    features: [...plan.features],
-    is_special: plan.is_special,
-    deleted: plan.deleted,
-    stripeProductId: plan.stripeProductId,
-    stripeMonthlyPriceId: plan.stripeMonthlyPriceId,
-    stripeYearlyPriceId: plan.stripeYearlyPriceId,
-    isAddon: plan.isAddon,
-    displayCount: plan.displayCount,
-    storage: plan.storage,
-    maxMembers: plan.maxMembers
-  }
-  showCreateDialog.value = true
-}
-
-function confirmDelete(plan: Plan) {
-  selectedPlan.value = plan
-  showDeleteDialog.value = true
-}
-
-async function handleDelete() {
-  const plan = selectedPlan.value
-  if (!plan) return
-
-  try {
-    isSubmitting.value = true
-    await plansStore.updatePlan(plan.id, { ...plan, deleted: true })
-    showDeleteDialog.value = false
-    selectedPlan.value = null
-  } catch (error: any) {
-    formError.value = error?.message || 'Failed to delete plan'
-  } finally {
-    isSubmitting.value = false
-  }
-}
-
-const isSubmitting = ref(false)
-const formError = ref<string | null>(null)
-
-function hasChanges(): boolean {
-  const plan = selectedPlan.value
-  if (!plan) return true
-  return Object.keys(formData.value).some(key => {
-    const formValue = formData.value[key as keyof typeof formData.value]
-    const originalValue = plan[key as keyof Plan]
-    return JSON.stringify(formValue) !== JSON.stringify(originalValue)
   })
-}
-
-async function handleSubmit() {
   formError.value = null
-  if (isEditing.value && !hasChanges()) {
-    showCreateDialog.value = false
-    return
-  }
-
-  try {
-    isSubmitting.value = true
-    if (isEditing.value && selectedPlan.value) {
-      await plansStore.updatePlan(selectedPlan.value.id, formData.value)
-    } else {
-      await plansStore.createPlan(formData.value)
-    }
-    showCreateDialog.value = false
-    resetForm()
-  } catch (error: any) {
-    // Handle validation errors
-    if (error.data && error.data.data) {
-      const validationErrors = Object.entries(error.data.data)
-        .map(([field, err]) => `${field}: ${(err as ValidationError).message}`)
-        .join('\n')
-      formError.value = `${error.data.message}\n${validationErrors}`
-    } else {
-      formError.value = error?.message || error?.data?.message || 'Failed to save plan'
-    }
-  } finally {
-    isSubmitting.value = false
-  }
 }
 
-function addFeature() {
-  formData.value.features.push('')
-}
-
-function removeFeature(index: number) {
-  formData.value.features.splice(index, 1)
-}
-
-function formatStorage(mbSize: number | null): string {
-  if (mbSize === null) return '-'
-  
-  const units = ['MB', 'GB', 'TB', 'PB']
-  let size = mbSize
-  let unitIndex = 0
-
-  while (size >= 1024 && unitIndex < units.length - 1) {
-    size /= 1024
-    unitIndex++
-  }
-
-  return `${Math.round(size * 100) / 100} ${units[unitIndex]}`
-}
-
-function createNewPlan() {
+const createNewPlan = () => {
+  selectedPlan.value = null
   resetForm()
   showCreateDialog.value = true
 }
 
-const maxMembersValue = computed({
-  get: () => formData.value.maxMembers ?? undefined,
-  set: (val) => formData.value.maxMembers = val ?? null
-})
-
-const storageValue = computed({
-  get: () => formData.value.storage ?? undefined,
-  set: (val) => formData.value.storage = val ?? null
-})
-
-const displayCountValue = computed({
-  get: () => formData.value.displayCount ?? undefined,
-  set: (val) => formData.value.displayCount = val ?? null
-})
-
-async function confirmRestore(plan: Plan) {
+const editPlan = (plan: Plan) => {
   selectedPlan.value = plan
-  showRestoreDialog.value = true
+  Object.assign(formData, plan)
+  showCreateDialog.value = true
 }
 
-async function handleRestore() {
-  const plan = selectedPlan.value
-  if (!plan) return
-
+const handleSubmit = async () => {
+  formError.value = null
+  isSubmitting.value = true
+  
   try {
-    isSubmitting.value = true
-    await plansStore.updatePlan(plan.id, { ...plan, deleted: false })
-    showRestoreDialog.value = false
-    selectedPlan.value = null
-  } catch (error: any) {
-    formError.value = error?.message || 'Failed to restore plan'
+    if (selectedPlan.value) {
+      await updatePlan(selectedPlan.value.id, formData)
+    } else {
+      await createPlan(formData)
+    }
+    showCreateDialog.value = false
+    resetForm()
+  } catch (err: any) {
+    formError.value = err.message || 'Failed to save plan'
+    console.error('Failed to save plan:', err)
   } finally {
     isSubmitting.value = false
   }
 }
 
-function handleDialogClose(dialog: DialogType, value: boolean) {
-  if (!value) {
-    formError.value = null
-    if (dialog === 'create') {
-      resetForm()
-    } else {
-      selectedPlan.value = null
+const confirmDelete = async (plan: Plan) => {
+  if (confirm('Are you sure you want to delete this plan?')) {
+    try {
+      await deletePlan(plan.id)
+    } catch (err: any) {
+      console.error('Failed to delete plan:', err)
     }
-  }
-  
-  switch (dialog) {
-    case 'create':
-      showCreateDialog.value = value
-      break
-    case 'delete':
-      showDeleteDialog.value = value
-      break
-    case 'restore':
-      showRestoreDialog.value = value
-      break
   }
 }
 
+const confirmRestore = async (plan: Plan) => {
+  if (confirm('Are you sure you want to restore this plan?')) {
+    try {
+      await updatePlan(plan.id, { ...plan, deleted: false })
+    } catch (err: any) {
+      console.error('Failed to restore plan:', err)
+    }
+  }
+}
 
+const handleDialogClose = (type: DialogType, value: boolean) => {
+  if (!value) {
+    showCreateDialog.value = false
+    selectedPlan.value = null
+    resetForm()
+  }
+}
+
+const addFeature = () => {
+  formData.features.push('')
+}
+
+const removeFeature = (index: number) => {
+  formData.features.splice(index, 1)
+}
+
+const formatStorage = (storage: number) => {
+  if (!storage) return '-'
+  return storage >= 1024 ? `${storage / 1024}GB` : `${storage}MB`
+}
+
+// Tabs
+const tabs: PlanTab[] = [
+  { label: 'Tenant Plans', value: 'tenant' },
+  { label: 'Add-ons', value: 'addon' }
+]
+
+// Table headers
+const tableHeaders = computed(() => {
+  const baseHeaders = [
+    { key: 'name', label: 'Name' },
+    { key: 'description', label: 'Description' },
+    { key: 'monthlyPrice', label: 'Monthly Price' },
+    { key: 'yearlyPrice', label: 'Yearly Price' }
+  ]
+
+  if (activeTab.value === 'tenant') {
+    return [
+      ...baseHeaders,
+      { key: 'maxMembers', label: 'Max Members' },
+      { key: 'storage', label: 'Storage' },
+      { key: 'displayCount', label: 'Displays' }
+    ]
+  }
+
+  return baseHeaders
+})
+
+// Initial load
+onMounted(async () => {
+  await fetchPlans()
+})
+
+definePageMeta({
+  middleware: ['auth']
+})
+
+const handleDelete = async () => {
+  if (selectedPlan.value) {
+    try {
+      isSubmitting.value = true
+      await deletePlan(selectedPlan.value.id)
+      showDeleteDialog.value = false
+      selectedPlan.value = null
+    } catch (err: any) {
+      formError.value = err.message || 'Failed to delete plan'
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+}
+
+const handleRestore = async () => {
+  if (selectedPlan.value) {
+    try {
+      isSubmitting.value = true
+      await updatePlan(selectedPlan.value.id, { ...selectedPlan.value, deleted: false })
+      showRestoreDialog.value = false
+      selectedPlan.value = null
+    } catch (err: any) {
+      formError.value = err.message || 'Failed to restore plan'
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+}
 </script> 
