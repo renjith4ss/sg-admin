@@ -114,149 +114,14 @@
         <h2 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
           Subscription Plans
         </h2>
-        <div
-          class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-        >
-          <div
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <PlanCard
             v-for="plan in regularPlans"
             :key="plan.id"
-            class="group relative overflow-hidden rounded-xl border bg-gray-50 dark:bg-gray-800 border-gray-200 transition-all hover:border-blue-200 hover:shadow-lg dark:border-gray-700 dark:hover:border-blue-900"
-          >
-            <!-- Status Badge -->
-            <div class="absolute right-3 top-3 z-10 flex gap-2">
-              <Badge
-                v-if="plan.isSpecial"
-                variant="secondary"
-                class="bg-blue-100 text-xs text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-              >
-                Special
-              </Badge>
-              <Badge v-if="plan.deleted" variant="destructive" class="text-xs">
-                Deleted
-              </Badge>
-            </div>
-
-            <!-- Card Header -->
-            <div class="relative space-y-3 p-6 bg-white dark:bg-gray-800/50">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                  <div class="rounded-lg bg-blue-100 p-2 dark:bg-blue-900/50">
-                    <Icon
-                      :name="
-                        plan.isAddon
-                          ? 'heroicons:puzzle-piece'
-                          : 'heroicons:document-text'
-                      "
-                      class="h-5 w-5 text-blue-600 dark:text-blue-400"
-                    />
-                  </div>
-                  <div>
-                    <h3 class="font-medium text-gray-900 dark:text-white">
-                      {{ plan.name }}
-                    </h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                      {{ plan.description }}
-                    </p>
-                  </div>
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" class="h-8 w-8">
-                      <Icon
-                        name="heroicons:ellipsis-vertical"
-                        class="h-4 w-4"
-                      />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem @click="editPlan(plan)">
-                      <Icon name="heroicons:pencil" class="mr-2 h-4 w-4" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      @click="confirmDelete(plan)"
-                      class="text-red-600"
-                    >
-                      <Icon name="heroicons:trash" class="mr-2 h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-
-            <!-- Card Content -->
-            <div class="space-y-6 rounded-b-xl p-6">
-              <!-- Pricing -->
-              <div v-if="isYearlyBilling" class="space-y-2">
-                <div class="flex items-baseline gap-1">
-                  <span
-                    class="text-2xl font-semibold text-gray-900 dark:text-white"
-                  >
-                    ${{ plan.yearlyPrice }}
-                  </span>
-                  <span class="text-sm text-gray-500 dark:text-gray-400">
-                    /year
-                  </span>
-                  <span
-                    v-if="plan.yearlyDiscount > 0"
-                    class="text-sm text-green-600 dark:text-green-400"
-                  >
-                    {{ plan.yearlyDiscount }}% off
-                  </span>
-                </div>
-              </div>
-              <div v-else class="space-y-2">
-                <div class="flex items-baseline gap-1">
-                  <span
-                    class="text-2xl font-semibold text-gray-900 dark:text-white"
-                  >
-                    ${{ plan.monthlyPrice }}
-                  </span>
-                  <span class="text-sm text-gray-500 dark:text-gray-400">
-                    /month
-                  </span>
-                  <span
-                    v-if="plan.monthlyDiscount > 0"
-                    class="text-sm text-green-600 dark:text-green-400"
-                  >
-                    {{ plan.monthlyDiscount }}% off
-                  </span>
-                </div>
-              </div>
-
-              <!-- Features for regular plans only -->
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2 rounded-lg p-1.5">
-                  <Icon
-                    name="heroicons:users"
-                    class="h-4 w-4 text-gray-500 dark:text-gray-400"
-                  />
-                  <p class="font-semibold text-gray-900 dark:text-white">
-                    {{ plan.maxMembers || "Unlimited" }}
-                  </p>
-                </div>
-                <div class="flex items-center gap-2 rounded-lg p-1.5">
-                  <Icon
-                    name="heroicons:circle-stack"
-                    class="h-4 w-4 text-gray-500 dark:text-gray-400"
-                  />
-                  <p class="font-semibold text-gray-900 dark:text-white">
-                    {{ formatStorage(plan.storage) }}
-                  </p>
-                </div>
-                <div class="flex items-center gap-2 rounded-lg p-1.5">
-                  <Icon
-                    name="heroicons:computer-desktop"
-                    class="h-4 w-4 text-gray-500 dark:text-gray-400"
-                  />
-                  <p class="font-semibold text-gray-900 dark:text-white">
-                    {{ plan.displayCount || "Unlimited" }}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+            :plan="plan"
+            :is-yearly="isYearlyBilling"
+            @click="showPlanDetails(plan)"
+          />
         </div>
       </div>
 
@@ -266,131 +131,13 @@
           Add-on Plans
         </h2>
         <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          <div
+          <PlanCard
             v-for="plan in addonPlans"
             :key="plan.id"
-            class="group relative overflow-hidden rounded-xl border bg-gray-50 dark:bg-gray-800 border-gray-200 transition-all hover:border-blue-200 hover:shadow-lg dark:border-gray-700 dark:hover:border-blue-900"
-          >
-            <!-- Status Badge -->
-            <div class="absolute right-3 top-3 z-10 flex gap-2">
-              <Badge
-                v-if="plan.isSpecial"
-                variant="secondary"
-                class="bg-blue-100 text-xs text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-              >
-                Special
-              </Badge>
-              <Badge v-if="plan.deleted" variant="destructive" class="text-xs">
-                Deleted
-              </Badge>
-            </div>
-
-            <!-- Card Header -->
-            <div class="relative space-y-3 p-6 bg-white dark:bg-gray-800/50">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                  <div class="rounded-lg bg-blue-100 p-2 dark:bg-blue-900/50">
-                    <Icon
-                      name="heroicons:puzzle-piece"
-                      class="h-5 w-5 text-blue-600 dark:text-blue-400"
-                    />
-                  </div>
-                  <div>
-                    <h3 class="font-medium text-gray-900 dark:text-white">
-                      {{ plan.name }}
-                    </h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                      {{ plan.description }}
-                    </p>
-                  </div>
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" class="h-8 w-8">
-                      <Icon
-                        name="heroicons:ellipsis-vertical"
-                        class="h-4 w-4"
-                      />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem @click="editPlan(plan)">
-                      <Icon name="heroicons:pencil" class="mr-2 h-4 w-4" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem @click="confirmDelete(plan)" class="text-red-600">
-                      <Icon name="heroicons:trash" class="mr-2 h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-
-            <!-- Card Content -->
-            <div class="space-y-6 rounded-b-xl p-6">
-              <!-- Pricing -->
-              <div v-if="isYearlyBilling" class="space-y-2">
-                <div class="flex items-baseline gap-1">
-                  <span class="text-2xl font-semibold text-gray-900 dark:text-white">
-                    ${{ plan.yearlyPrice }}
-                  </span>
-                  <span class="text-sm text-gray-500 dark:text-gray-400">/year</span>
-                  <span
-                    v-if="plan.yearlyDiscount > 0"
-                    class="text-sm text-green-600 dark:text-green-400"
-                  >
-                    {{ plan.yearlyDiscount }}% off
-                  </span>
-                </div>
-              </div>
-              <div v-else class="space-y-2">
-                <div class="flex items-baseline gap-1">
-                  <span class="text-2xl font-semibold text-gray-900 dark:text-white">
-                    ${{ plan.monthlyPrice }}
-                  </span>
-                  <span class="text-sm text-gray-500 dark:text-gray-400">/month</span>
-                  <span
-                    v-if="plan.monthlyDiscount > 0"
-                    class="text-sm text-green-600 dark:text-green-400"
-                  >
-                    {{ plan.monthlyDiscount }}% off
-                  </span>
-                </div>
-              </div>
-
-              <!-- Features for regular plans only -->
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2 rounded-lg p-1.5">
-                  <Icon
-                    name="heroicons:users"
-                    class="h-4 w-4 text-gray-500 dark:text-gray-400"
-                  />
-                  <p class="font-semibold text-gray-900 dark:text-white">
-                    {{ plan.maxMembers || 0 }}
-                  </p>
-                </div>
-                <div class="flex items-center gap-2 rounded-lg p-1.5">
-                  <Icon
-                    name="heroicons:circle-stack"
-                    class="h-4 w-4 text-gray-500 dark:text-gray-400"
-                  />
-                  <p class="font-semibold text-gray-900 dark:text-white">
-                    {{ formatStorage(plan.storage) }}
-                  </p>
-                </div>
-                <div class="flex items-center gap-2 rounded-lg p-1.5">
-                  <Icon
-                    name="heroicons:computer-desktop"
-                    class="h-4 w-4 text-gray-500 dark:text-gray-400"
-                  />
-                  <p class="font-semibold text-gray-900 dark:text-white">
-                    {{ plan.displayCount || 0 }}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+            :plan="plan"
+            :is-yearly="isYearlyBilling"
+            @click="showPlanDetails(plan)"
+          />
         </div>
       </div>
     </div>
@@ -413,11 +160,15 @@
                 <TableHead class="w-[80px]"> Members </TableHead>
                 <TableHead class="w-[80px]"> Storage </TableHead>
                 <TableHead class="w-[80px]"> Displays </TableHead>
-                <TableHead class="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow v-for="plan in regularPlans" :key="plan.id">
+              <TableRow
+                v-for="plan in regularPlans"
+                :key="plan.id"
+                class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                @click="showPlanDetails(plan)"
+              >
                 <TableCell>
                   <div class="flex items-center gap-2">
                     <span class="font-medium">{{ plan.name }}</span>
@@ -457,40 +208,14 @@
                   </span>
                 </TableCell>
                 <TableCell class="text-center">{{
-                  plan.maxMembers || "∞"
+                  plan.maxMembers || 0
                 }}</TableCell>
                 <TableCell class="text-center">{{
                   formatStorage(plan.storage)
                 }}</TableCell>
                 <TableCell class="text-center">{{
-                  plan.displayCount || "∞"
+                  plan.displayCount || 0
                 }}</TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <Icon
-                          name="heroicons:ellipsis-vertical"
-                          class="h-5 w-5"
-                        />
-                        <span class="sr-only">Open menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem @click="editPlan(plan)">
-                        <Icon name="heroicons:pencil" class="mr-2 h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        @click="confirmDelete(plan)"
-                        class="text-red-600"
-                      >
-                        <Icon name="heroicons:trash" class="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
               </TableRow>
             </TableBody>
           </Table>
@@ -510,11 +235,18 @@
                 <TableHead>Description</TableHead>
                 <TableHead>Monthly Price</TableHead>
                 <TableHead>Yearly Price</TableHead>
-                <TableHead class="w-[100px]">Actions</TableHead>
+                <TableHead class="w-[80px]"> Members </TableHead>
+                <TableHead class="w-[80px]"> Storage </TableHead>
+                <TableHead class="w-[80px]"> Displays </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow v-for="plan in addonPlans" :key="plan.id">
+              <TableRow
+                v-for="plan in addonPlans"
+                :key="plan.id"
+                class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                @click="showPlanDetails(plan)"
+              >
                 <TableCell>
                   <div class="flex items-center gap-2">
                     <span class="font-medium">{{ plan.name }}</span>
@@ -553,32 +285,15 @@
                     (-{{ plan.yearlyDiscount }}%)
                   </span>
                 </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <Icon
-                          name="heroicons:ellipsis-vertical"
-                          class="h-5 w-5"
-                        />
-                        <span class="sr-only">Open menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem @click="editPlan(plan)">
-                        <Icon name="heroicons:pencil" class="mr-2 h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        @click="confirmDelete(plan)"
-                        class="text-red-600"
-                      >
-                        <Icon name="heroicons:trash" class="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
+                <TableCell class="text-center">{{
+                  plan.maxMembers || 0
+                }}</TableCell>
+                <TableCell class="text-center">{{
+                  formatStorage(plan.storage)
+                }}</TableCell>
+                <TableCell class="text-center">{{
+                  plan.displayCount || 0
+                }}</TableCell>
               </TableRow>
             </TableBody>
           </Table>
@@ -859,16 +574,13 @@
           <!-- Form Actions -->
           <div class="mt-6 flex justify-end gap-3">
             <Button
+              type="button"
               variant="outline"
               @click="showCreateDialog = false"
-              :disabled="isSubmitting"
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              :disabled="isSubmitting || (isEditing && !hasChanges)"
-            >
+            <Button type="submit" :disabled="isSubmitting || !hasChanges">
               {{ isSubmitting ? "Saving..." : isEditing ? "Update" : "Create" }}
             </Button>
           </div>
@@ -887,66 +599,25 @@
       </DialogContent>
     </Dialog>
 
-    <!-- Delete Confirmation Dialog -->
-    <Dialog
-      :open="showDeleteDialog"
-      @update:open="(value: boolean) => handleDialogClose('delete', value)"
-    >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Delete Plan</DialogTitle>
-        </DialogHeader>
-        <DialogDescription class="text-sm text-gray-500 dark:text-gray-400">
-          Are you sure you want to delete this plan? This action cannot be
-          undone.
-        </DialogDescription>
-        <div class="mt-4 flex justify-end gap-3">
-          <Button variant="outline" @click="showDeleteDialog = false">
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            @click="handleDelete"
-            :disabled="isLoading"
-          >
-            Delete
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-
-    <!-- Restore Dialog -->
-    <Dialog
-      :open="showRestoreDialog"
-      @update:open="(value: boolean) => handleDialogClose('restore', value)"
-    >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Restore Plan</DialogTitle>
-        </DialogHeader>
-        <DialogDescription class="text-sm text-gray-500 dark:text-gray-400">
-          Are you sure you want to restore this plan? It will become active
-          again.
-        </DialogDescription>
-        <div class="mt-4 flex justify-end gap-3">
-          <Button
-            variant="outline"
-            @click="showRestoreDialog = false"
-            :disabled="isSubmitting"
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="default"
-            @click="handleRestore"
-            :disabled="isSubmitting"
-            class="bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700"
-          >
-            {{ isSubmitting ? "Restoring..." : "Restore" }}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <!-- Plan Details Dialog -->
+    <PlanDetails
+      v-if="selectedPlanForDetails"
+      :isOpen="showDetailsDialog"
+      :plan="selectedPlanForDetails"
+      @update:open="showDetailsDialog = $event"
+      @edit="() => {
+        showDetailsDialog = false
+        editPlan(selectedPlanForDetails!)
+      }"
+      @delete="() => {
+        showDetailsDialog = false
+        confirmDelete(selectedPlanForDetails!)
+      }"
+      @restore="() => {
+        showDetailsDialog = false
+        confirmRestore(selectedPlanForDetails!)
+      }"
+    />
   </div>
 </template>
 
@@ -965,19 +636,20 @@ const {
   createPlan,
   updatePlan,
   deletePlan,
+  restorePlan,
 } = usePlans();
 
 // State
 const searchQuery = ref("");
 const showDeletedPlans = ref(false);
 const showCreateDialog = ref(false);
-const showDeleteDialog = ref(false);
-const showRestoreDialog = ref(false);
 const selectedPlan = ref<Plan | null>(null);
 const activeTab = ref<"tenant" | "addon">("tenant");
 const isSubmitting = ref(false);
 const formError = ref<string | null>(null);
 const isYearlyBilling = ref(false);
+const showDetailsDialog = ref(false);
+const selectedPlanForDetails = ref<Plan | null>(null);
 
 // Form state
 const formData = reactive({
@@ -1026,12 +698,25 @@ const isEditing = computed(() => !!selectedPlan.value);
 
 const hasChanges = computed(() => {
   const plan = selectedPlan.value;
-  if (!plan) return true;
-  return Object.keys(formData).some((key) => {
+  if (!plan) return true; // Always true for new plans
+
+  // Compare features array - check length and content
+  const cleanFeatures = formData.features.filter(f => f.trim());
+  const cleanOriginalFeatures = plan.features.filter(f => f.trim());
+  
+  const featuresChanged = 
+    cleanFeatures.length !== cleanOriginalFeatures.length || 
+    cleanFeatures.some((f, i) => f !== cleanOriginalFeatures[i]);
+
+  // Compare other fields
+  const otherFieldsChanged = Object.keys(formData).some(key => {
+    if (key === 'features') return false;
     const formValue = formData[key as keyof typeof formData];
     const originalValue = plan[key as keyof Plan];
-    return JSON.stringify(formValue) !== JSON.stringify(originalValue);
+    return formValue !== originalValue;
   });
+
+  return featuresChanged || otherFieldsChanged;
 });
 
 // Form computed values
@@ -1083,7 +768,10 @@ const createNewPlan = () => {
 
 const editPlan = (plan: Plan) => {
   selectedPlan.value = plan;
-  Object.assign(formData, plan);
+  Object.assign(formData, {
+    ...plan,
+    features: [...plan.features]
+  });
   showCreateDialog.value = true;
 };
 
@@ -1093,7 +781,31 @@ const handleSubmit = async () => {
 
   try {
     if (selectedPlan.value) {
-      await updatePlan(selectedPlan.value.id, formData);
+      // Get only the changed fields for update
+      const changedFields = Object.keys(formData).reduce((acc, key) => {
+        const formValue = formData[key as keyof typeof formData];
+        const originalValue = selectedPlan.value![key as keyof Plan];
+        
+        // Special handling for features array
+        if (key === 'features') {
+          const cleanFeatures = formData.features.filter(f => f.trim());
+          const cleanOriginalFeatures = selectedPlan.value!.features.filter(f => f.trim());
+          if (JSON.stringify(cleanFeatures) !== JSON.stringify(cleanOriginalFeatures)) {
+            acc[key as keyof Plan] = cleanFeatures;
+          }
+          return acc;
+        }
+
+        // Compare other fields directly
+        if (formValue !== originalValue) {
+          acc[key as keyof Plan] = formValue;
+        }
+        return acc;
+      }, {} as Record<keyof Plan, any>);
+
+      if (Object.keys(changedFields).length > 0) {
+        await updatePlan(selectedPlan.value.id, changedFields);
+      }
     } else {
       await createPlan(formData);
     }
@@ -1108,22 +820,26 @@ const handleSubmit = async () => {
 };
 
 const confirmDelete = async (plan: Plan) => {
-  if (confirm("Are you sure you want to delete this plan?")) {
-    try {
-      await deletePlan(plan.id);
-    } catch (err: any) {
-      console.error("Failed to delete plan:", err);
-    }
+  try {
+    isSubmitting.value = true;
+    await deletePlan(plan.id);
+  } catch (err: any) {
+    formError.value = err.message || "Failed to delete plan";
+    console.error("Failed to delete plan:", err);
+  } finally {
+    isSubmitting.value = false;
   }
 };
 
 const confirmRestore = async (plan: Plan) => {
-  if (confirm("Are you sure you want to restore this plan?")) {
-    try {
-      await updatePlan(plan.id, { ...plan, deleted: false });
-    } catch (err: any) {
-      console.error("Failed to restore plan:", err);
-    }
+  try {
+    isSubmitting.value = true;
+    await restorePlan(plan.id);
+  } catch (err: any) {
+    formError.value = err.message || "Failed to restore plan";
+    console.error("Failed to restore plan:", err);
+  } finally {
+    isSubmitting.value = false;
   }
 };
 
@@ -1154,27 +870,6 @@ const tabs: PlanTab[] = [
   { label: "Add-ons", value: "addon" },
 ];
 
-// Table headers
-const tableHeaders = computed(() => {
-  const baseHeaders = [
-    { key: "name", label: "Name" },
-    { key: "description", label: "Description" },
-    { key: "monthlyPrice", label: "Monthly Price" },
-    { key: "yearlyPrice", label: "Yearly Price" },
-  ];
-
-  if (activeTab.value === "tenant") {
-    return [
-      ...baseHeaders,
-      { key: "maxMembers", label: "Max Members" },
-      { key: "storage", label: "Storage" },
-      { key: "displayCount", label: "Displays" },
-    ];
-  }
-
-  return baseHeaders;
-});
-
 // Initial load
 onMounted(async () => {
   await fetchPlans();
@@ -1183,39 +878,6 @@ onMounted(async () => {
 definePageMeta({
   middleware: ["auth"],
 });
-
-const handleDelete = async () => {
-  if (selectedPlan.value) {
-    try {
-      isSubmitting.value = true;
-      await deletePlan(selectedPlan.value.id);
-      showDeleteDialog.value = false;
-      selectedPlan.value = null;
-    } catch (err: any) {
-      formError.value = err.message || "Failed to delete plan";
-    } finally {
-      isSubmitting.value = false;
-    }
-  }
-};
-
-const handleRestore = async () => {
-  if (selectedPlan.value) {
-    try {
-      isSubmitting.value = true;
-      await updatePlan(selectedPlan.value.id, {
-        ...selectedPlan.value,
-        deleted: false,
-      });
-      showRestoreDialog.value = false;
-      selectedPlan.value = null;
-    } catch (err: any) {
-      formError.value = err.message || "Failed to restore plan";
-    } finally {
-      isSubmitting.value = false;
-    }
-  }
-};
 
 // Add new state
 const isGridView = ref(true);
@@ -1233,4 +895,9 @@ const regularPlans = computed(() => {
 const addonPlans = computed(() => {
   return filteredPlans.value.filter((plan) => plan.isAddon);
 });
+
+const showPlanDetails = (plan: Plan) => {
+  selectedPlanForDetails.value = plan;
+  showDetailsDialog.value = true;
+};
 </script>

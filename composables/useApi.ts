@@ -1,5 +1,5 @@
 import { useToast } from '~/composables/useToast'
-import { usePocketBase } from '~/services/pocketbase'
+import { usePocketBaseService } from '~/services/pocketbase'
 import type { RecordModel, RecordSubscription } from 'pocketbase'
 
 export interface ApiError extends Error {
@@ -22,7 +22,7 @@ export interface Subscription {
 }
 
 export const useApi = () => {
-  const pb = usePocketBase()
+  const pb = usePocketBaseService()
   const toast = useToast()
   const subscriptions = ref(new Map<string, Subscription>())
 

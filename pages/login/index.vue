@@ -2,19 +2,7 @@
   <div class="min-h-screen bg-blue-50 dark:bg-gray-950 relative">
     <!-- Theme Toggle Button -->
     <div class="absolute top-4 right-4">
-      <Button
-        variant="ghost"
-        size="icon"
-        @click="toggleTheme"
-        class="rounded-full"
-      >
-        <ClientOnly>
-          <Icon
-            :name="$colorMode.value === 'dark' ? 'ph:sun-bold' : 'ph:moon-bold'"
-            class="h-5 w-5 text-gray-700 dark:text-gray-300"
-          />
-        </ClientOnly>
-      </Button>
+      <ThemeToggle buttonClass="rounded-full" />
     </div>
 
     <div class="flex items-center justify-center min-h-screen p-4">

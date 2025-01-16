@@ -63,16 +63,7 @@
         <!-- Right side buttons -->
         <div class="flex items-center gap-4">
           <!-- Theme toggle -->
-          <Button
-            variant="ghost"
-            size="icon"
-            @click="toggleTheme"
-          >
-            <Icon
-              :name="$colorMode.value === 'dark' ? 'ph:sun-bold' : 'ph:moon-bold'"
-              class="h-5 w-5"
-            />
-          </Button>
+          <ThemeToggle />
 
           <!-- User menu -->
           <DropdownMenu>
@@ -168,10 +159,6 @@ const navigationItems = [
     icon: 'ph:receipt'
   }
 ]
-
-function toggleTheme() {
-  colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
-}
 
 async function handleLogout() {
   await logout()

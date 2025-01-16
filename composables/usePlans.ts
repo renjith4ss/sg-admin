@@ -24,6 +24,7 @@ export const usePlans = () => {
     createPlan: plansStore.createPlan,
     updatePlan: plansStore.updatePlan,
     deletePlan: plansStore.deletePlan,
-    fetchPlan: plansStore.fetchPlan
+    fetchPlan: plansStore.fetchPlan,
+    restorePlan: plansStore.restorePlan
   }
 } 

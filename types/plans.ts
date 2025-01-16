@@ -1,4 +1,4 @@
-export interface Plan {
+export type Plan = {
   id: string
   name: string
   description: string
@@ -22,25 +22,11 @@ export interface Plan {
   updated: string
 }
 
-export interface PlansState {
+export type PlansState ={
   plans: Plan[]
   currentPlan: Plan | null
   isLoading: boolean
   error: string | null
-}
-
-export interface ValidationError {
-  code: string
-  message: string
-}
-
-export interface ApiError {
-  data?: {
-    data?: Record<string, ValidationError>
-    message?: string
-  }
-  message: string
-  status: number
 }
 
 export type PlanTabValue = 'tenant' | 'addon'

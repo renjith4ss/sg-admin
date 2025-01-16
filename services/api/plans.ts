@@ -16,12 +16,16 @@ class PlansApi extends ApiClient {
     return this.patch(`${this.resource}/${id}`, planData)
   }
 
-  override async delete(id: string): Promise<void> {
+  async deleteOne(id: string): Promise<Plan | null> {
     return super.delete(`${this.resource}/${id}`)
   }
 
   async getOne(id: string): Promise<Plan | null> {
     return this.get(`${this.resource}/${id}`)
+  }
+
+  async restore(id: string): Promise<Plan | null> {
+    return this.patch(`${this.resource}/${id}/restore`)
   }
 }
 

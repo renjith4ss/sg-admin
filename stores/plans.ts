@@ -86,11 +86,14 @@ export const usePlansStore = defineStore('plans', {
       this.error = null
       
       try {
-        await plansApi.delete(id)
-        const index = this.plans.findIndex((p: Plan) => p.id === id)
-        if (index !== -1) {
-          this.plans.splice(index, 1)
+        const plan = await plansApi.deleteOne(id)
+        if (plan) {
+          const index = this.plans.findIndex((p: Plan) => p.id === id)
+          if (index !== -1) {
+            this.plans[index] = plan
+          }
         }
+        return plan
       } catch (err: any) {
         this.error = err.message || 'Failed to delete plan'
         throw err
@@ -117,6 +120,27 @@ export const usePlansStore = defineStore('plans', {
         return plan
       } catch (err: any) {
         this.error = err.message || 'Failed to fetch plan'
+        throw err
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    async restorePlan(id: string) {
+      this.isLoading = true
+      this.error = null
+      
+      try {
+        const plan = await plansApi.restore(id)
+        if (plan) {
+          const index = this.plans.findIndex((p: Plan) => p.id === id)
+          if (index !== -1) {
+            this.plans[index] = plan
+          }
+        }
+        return plan
+      } catch (err: any) {
+        this.error = err.message || 'Failed to restore plan'
         throw err
       } finally {
         this.isLoading = false
