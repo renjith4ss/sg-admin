@@ -79,3 +79,24 @@
         5. Create and manage subscription plans and add-on plans
         6. Manage plans of each tenants
         7. Manage and verify invoices (through stripe).
+
+    Commit message should be in the following format:
+    [type]: [description]
+
+    type:
+    - feat: new feature
+    - fix: bug fix
+    - docs: documentation
+    - refactor: code refactoring
+    - chore: other changes
+
+    description:
+    - should be a short description of the changes
+
+    Example:
+    - feat: add new feature
+    - fix: fix bug
+    - docs: update documentation
+    - refactor: refactor code
+    - chore: other changes
+    need short and precise description.
