@@ -1,6 +1,5 @@
 import { usePlansStore } from '~/stores/plans'
 import { storeToRefs } from 'pinia'
-import type { Plan } from '~/types/plans'
 
 export const usePlans = () => {
   const plansStore = usePlansStore()
