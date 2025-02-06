@@ -10,14 +10,16 @@
         <!-- Left side with quote -->
         <div class="w-1/2 p-12 text-white flex flex-col">
           <div class="flex items-center gap-2 mb-8">
-            <div class="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-              <span class="text-2xl">⚙️</span>
+            <div class="w-10 h-10 rounded-lg bg-white flex items-center justify-center">
+              <span class="text-2xl w-8 h-8">
+                <BrandLogoColor />
+              </span>
             </div>
-            <span class="text-2xl font-bold">Admin Portal</span>
+            <span class="text-2xl font-bold">Lumenex</span>
           </div>
           <div class="flex-1 flex items-center">
             <div class="space-y-4">
-              <h2 class="text-3xl font-bold">Welcome Back!</h2>
+              <h2 class="text-3xl font-bold">Admin Portal</h2>
               <p class="text-blue-100 dark:text-blue-200">Sign in to access your admin dashboard and manage your resources.</p>
             </div>
           </div>

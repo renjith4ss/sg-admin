@@ -68,5 +68,20 @@ export default defineNuxtConfig({
     },
   ],
 
-  compatibilityDate: '2025-01-06'
+  experimental: {
+    payloadExtraction: false
+  },
+
+  devtools: {
+    enabled: true
+  },
+
+  nitro: {
+    esbuild: {
+      options: {
+        target: 'esnext'
+      }
+    }
+  },
+  compatibilityDate: '2025-02-06',
 })

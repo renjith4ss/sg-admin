@@ -1,5 +1,5 @@
-import { useRolesStore } from '~/stores/roles'
 import { storeToRefs } from 'pinia'
+import { useRolesStore } from '~/stores/roles'
 
 export const useRoles = () => {
   const rolesStore = useRolesStore()

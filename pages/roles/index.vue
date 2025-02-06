@@ -8,7 +8,7 @@
           Manage roles
         </p>
       </div>
-      <Button @click="createNewRole" class="gap-2">
+      <Button @click="handleCreateRole" class="gap-2">
         <Icon name="heroicons:plus" class="h-5 w-5" />
         New Role
       </Button>
@@ -81,6 +81,7 @@
                 <TableHead class="w-[80px]"> Members </TableHead>
                 <TableHead class="w-[80px]"> Storage </TableHead>
                 <TableHead class="w-[80px]"> Displays </TableHead>
+                <TableHead class="w-[80px]"> Actions </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -124,7 +125,7 @@
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Get started by creating a new role
         </p>
-        <Button @click="createNewRole" class="mt-6 gap-2">
+        <Button @click="handleCreateRole" class="mt-6 gap-2">
           <Icon name="heroicons:plus" class="h-5 w-5" />
           New Role
         </Button>
@@ -237,9 +238,14 @@
 </template>
 
 <script setup lang="ts">
-import type { Role } from "~/types/roles";
+import { Icon } from '#components';
+import RoleCard from '~/components/roles/RoleCard.vue';
+import RoleForm from '~/components/roles/RoleForm.vue';
+import { Button } from '~/components/ui/button';
+import { useDialog } from '~/composables/useDialog';
 import { useRoles } from "~/composables/useRoles";
 import type { Permission } from "~/types/permissions";
+import type { Role } from "~/types/roles";
 
 const {
   roles,
@@ -250,6 +256,8 @@ const {
   updateRole,
   deleteRole
 } = useRoles();
+
+const dialog = useDialog()
 
 // State
 const searchQuery = ref("");
@@ -277,7 +285,7 @@ const filteredRoles = computed(() => {
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
     filtered = filtered.filter(
-      (role) =>
+      (role: Role) =>
         role.name.toLowerCase().includes(query) ||
         role.description.toLowerCase().includes(query)
     );
@@ -323,7 +331,7 @@ const resetForm = () => {
   formError.value = null;
 };
 
-const createNewRole = () => {
+const handleCreateRole = () => {
   selectedRole.value = null;
   resetForm();
   showCreateDialog.value = true;
@@ -424,4 +432,55 @@ const showRoleDetails = (role: Role) => {
   selectedRoleForDetails.value = role;
   showDetailsDialog.value = true;
 };
+
+const columns = [
+  {
+    accessorKey: 'name',
+    header: 'Name'
+  },
+  {
+    accessorKey: 'description',
+    header: 'Description'
+  },
+  {
+    id: 'actions',
+    cell: ({ row }: { row: { original: Role } }) => {
+      const role = row.original
+
+      const handleEdit = () => {
+        dialog.create({
+          title: 'Edit Role',
+          content: () => h(RoleForm, {
+            mode: 'edit',
+            initialData: role,
+            onSubmit: async (data) => {
+              await updateRole(role.id, data)
+              dialog.close()
+            },
+            onCancel: () => dialog.close()
+          })
+        })
+      }
+
+      const handleDelete = async () => {
+        if (await confirm('Are you sure you want to delete this role?')) {
+          await deleteRole(role.id)
+        }
+      }
+
+      return h('div', { class: 'flex gap-2' }, [
+        h(Button, {
+          variant: 'ghost',
+          size: 'icon',
+          onClick: handleEdit
+        }, () => h(Icon, { name: 'heroicons:pencil-square' })),
+        h(Button, {
+          variant: 'ghost',
+          size: 'icon',
+          onClick: handleDelete
+        }, () => h(Icon, { name: 'heroicons:trash' }))
+      ])
+    }
+  }
+]
 </script>

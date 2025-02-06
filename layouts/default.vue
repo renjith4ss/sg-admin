@@ -134,8 +134,8 @@ const navigationItems = [
     icon: 'ph:squares-four'
   },
   {
-    name: 'Organizations',
-    to: '/organizations',
+    name: 'Tenants',
+    to: '/tenants',
     icon: 'ph:buildings'
   },
   {
@@ -144,10 +144,16 @@ const navigationItems = [
     icon: 'ph:users'
   },
   {
+    name: 'Roles',
+    to: '/roles',
+    icon: 'ph:user-focus'
+  },
+  {
     name: 'Displays',
     to: '/displays',
     icon: 'ph:monitor'
   },
+
   {
     name: 'Plans',
     to: '/plans',
