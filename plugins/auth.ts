@@ -14,7 +14,9 @@ export default defineNuxtPlugin({
     
     // First, try to restore auth from cookie (during SSR and client)
     const authCookie = useCookie<AuthCookie | null>('pb_auth')
+    console.log('authCookie', authCookie.value)
     if (authCookie.value) {
+      console.log('Restoring auth state from cookie')
       try {
         const { token, model } = authCookie.value
         pb.authStore.save(token, model)
@@ -24,6 +26,9 @@ export default defineNuxtPlugin({
         if (!isValid) {
           pb.authStore.clear()
           authCookie.value = null
+        } else {
+          console.log('Fetching current user')
+          await useAuthStore().fetchCurrentUser()
         }
       } catch (err) {
         console.error('Failed to restore auth state:', err)
@@ -34,7 +39,9 @@ export default defineNuxtPlugin({
 
     // Then set up the onChange listener (client-side only)
     if (import.meta.client) {
-      pb.authStore.onChange((token, model) => {
+      console.log('Setting up auth listener')
+      pb.authStore.onChange(async (token, model) => {
+        console.log('Auth listener triggered')
         const authCookie = useCookie<AuthCookie | null>('pb_auth', {
           maxAge: 30 * 24 * 60 * 60, // 30 days
           path: '/',
@@ -43,7 +50,9 @@ export default defineNuxtPlugin({
         })
 
         if (token) {
+          console.log('Setting auth cookie')
           authCookie.value = { token, model }
+          await useAuthStore().fetchCurrentUser()
         } else {
           authCookie.value = null
         }

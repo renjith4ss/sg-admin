@@ -22,7 +22,8 @@ export interface User {
   eroot: string
   froot: string
   needsMfa?: boolean
-  mfaId?: string
+  mfaId?: string,
+  permissions: string[]
 }
 
 export interface LoginCredentials {
@@ -44,6 +45,7 @@ export interface PasswordResetConfirmation {
 export interface AuthState {
   isLoading: boolean
   error: string | null
+  user: User | null
 }
 
 export interface OTPRequest {

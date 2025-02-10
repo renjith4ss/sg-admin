@@ -1,6 +1,7 @@
 import type { RecordModel } from 'pocketbase'
-import type { User, LoginCredentials, PasswordResetConfirmation, OTPRequest, OTPResponse, MFAResponse } from '~/types/auth'
+import type { LoginCredentials, MFAResponse, OTPRequest, OTPResponse, PasswordResetConfirmation, User } from '~/types/auth'
 import { usePocketBaseService } from '../pocketbase'
+import { profileApi } from './profile'
 
 function mapRecordToUser(record: RecordModel): User {
   return {
@@ -27,7 +28,8 @@ function mapRecordToUser(record: RecordModel): User {
     eroot: record.eroot,
     froot: record.froot,
     needsMfa: record.needsMfa,
-    mfaId: record.mfaId
+    mfaId: record.mfaId,
+    permissions: record.permissions
   }
 }
 
@@ -36,11 +38,6 @@ export const authApi = {
   isAuthenticated(): boolean {
     const pb = usePocketBaseService()
     return !!(pb?.authStore.isValid && pb?.authStore.token && pb?.authStore.record)
-  },
-
-  getUser() {
-    const pb = usePocketBaseService()
-    return pb?.authStore.record
   },
 
   isTokenExpired() {
@@ -84,14 +81,15 @@ export const authApi = {
 
   async getCurrentUser() {
     const pb = usePocketBaseService()
-    const user = pb?.authStore.record
+    const user = await profileApi.getMe() || pb?.authStore.record
     return user ? mapRecordToUser(user) : null
   },
 
   async refreshSession() {
     const pb = usePocketBaseService()
-    const authData = await pb.refreshAuth()
-    return authData ? mapRecordToUser(authData.record) : null
+    await pb.refreshAuth()
+    const user = await profileApi.getMe() || pb?.authStore.record
+    return user ? mapRecordToUser(user) : null
   },
 
   async updateProfile(userId: string, data: Partial<User>) {

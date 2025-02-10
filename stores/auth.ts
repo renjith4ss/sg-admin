@@ -1,16 +1,16 @@
 import { defineStore } from 'pinia'
-import type { RecordModel } from 'pocketbase'
 import { authApi } from '~/services/api/auth'
-import type { User, LoginCredentials, AuthState, PasswordResetConfirmation, OTPRequest, OTPResponse, MFAResponse } from '~/types/auth'
+import type { AuthState, LoginCredentials, MFAResponse, OTPRequest, OTPResponse, PasswordResetConfirmation, User } from '~/types/auth'
 
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     isLoading: false,
     error: null,
+    user: null
   }),
 
   getters: {
-    user: () => authApi.getUser(),
+    currentUser: (state) => state.user,
     isAuthenticated: () => authApi.isAuthenticated(),
     isTokenExpired: () => authApi.isTokenExpired()
   },
@@ -25,7 +25,8 @@ export const useAuthStore = defineStore('auth', {
         if ('needsMfa' in result) {
           return result
         }
-        return result
+        const user = await authApi.getCurrentUser()
+        return user || result
       } catch (err: any) {
         this.error = err.message || 'Failed to login'
         throw err
@@ -53,7 +54,8 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       
       try {
-        await authApi.refreshSession()
+        const user = await authApi.refreshSession()
+        return user
       } catch (err: any) {
         this.error = err.message || 'Failed to refresh session'
         throw err
@@ -131,6 +133,21 @@ export const useAuthStore = defineStore('auth', {
         return user
       } catch (err: any) {
         this.error = err.message || 'Failed to verify OTP'
+        throw err
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    async fetchCurrentUser() {
+      this.isLoading = true
+      this.error = null
+      
+      try {
+        const user = await authApi.getCurrentUser()
+        return user
+      } catch (err: any) {
+        this.error = err.message || 'Failed to fetch current user'
         throw err
       } finally {
         this.isLoading = false

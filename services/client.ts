@@ -1,5 +1,5 @@
-import { usePocketBaseService } from './pocketbase'
 import { navigateTo } from '#app'
+import { usePocketBaseService } from './pocketbase'
 
 class ApiClient {
   private BASE_ENDPOINT = '/admin/api/v1'
@@ -20,6 +20,7 @@ class ApiClient {
   protected async get<T>(endpoint: string): Promise<T> {
     try {
       const pb = this.getPocketBase()
+      console.log(`${this.BASE_ENDPOINT}/${endpoint}`, pb.authStore);
       const response = await pb.send(`${this.BASE_ENDPOINT}/${endpoint}`, {
         method: 'GET'
       })
