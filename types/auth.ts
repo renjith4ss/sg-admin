@@ -1,3 +1,9 @@
+
+export interface AuthCookie {
+  token: string
+  model: any // or your specific model type
+}
+
 export interface User {
   id: string
   email: string

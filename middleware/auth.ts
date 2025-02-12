@@ -1,15 +1,14 @@
-export default defineNuxtRouteMiddleware((to) => {
-  const { isAuthenticated } = useAuth()
+export default defineNuxtRouteMiddleware(async (to) => {
 
-  // Skip middleware for login page
-  if (to.path === '/login') {
-    return
-  }
+  const { initialize } = usePocketbase();
+  await initialize(); // Initialize on every route change
 
-  // Redirect to login if not authenticated
-  if (!isAuthenticated.value) {
-    return navigateTo(`/login?redirect=${to.fullPath}`, {
-      replace: true
-    })
+  // Optional: Redirect if not authenticated
+  const { user } = usePocketbase();
+  if (!user.value && to.path !== '/login') {
+    return navigateTo(`/login${to.path === '/login' ? '' : '?redirect=' + to.fullPath}`);
   }
-}) 
+  if (user.value && to.path === '/login') {
+    return navigateTo('/');
+  }
+})

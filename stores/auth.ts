@@ -144,8 +144,7 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       
       try {
-        const user = await authApi.getCurrentUser()
-        return user
+        this.user = await authApi.getCurrentUser()
       } catch (err: any) {
         this.error = err.message || 'Failed to fetch current user'
         throw err

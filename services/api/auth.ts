@@ -1,6 +1,6 @@
 import type { RecordModel } from 'pocketbase'
+import { usePocketbase } from '~/composables/usePocketbase'
 import type { LoginCredentials, MFAResponse, OTPRequest, OTPResponse, PasswordResetConfirmation, User } from '~/types/auth'
-import { usePocketBaseService } from '../pocketbase'
 import { profileApi } from './profile'
 
 function mapRecordToUser(record: RecordModel): User {
@@ -36,21 +36,20 @@ function mapRecordToUser(record: RecordModel): User {
 export const authApi = {
 
   isAuthenticated(): boolean {
-    const pb = usePocketBaseService()
+    const { pb } = usePocketbase()
     return !!(pb?.authStore.isValid && pb?.authStore.token && pb?.authStore.record)
   },
 
   isTokenExpired() {
-    const pb = usePocketBaseService()
+    const { pb } = usePocketbase()
     return pb?.authStore.isValid
   },
 
   async login(credentials: LoginCredentials): Promise<User | MFAResponse> {
-    const pb = usePocketBaseService()
+    const { login } = usePocketbase()
     try {
-      const authData = await pb.adminLogin(
-        credentials.email,
-        credentials.password
+      const authData = await login(
+        credentials
       )
       const user = mapRecordToUser(authData.record)
       
@@ -75,36 +74,35 @@ export const authApi = {
   },
 
   async logout() {
-    const pb = usePocketBaseService()
-    pb?.authStore.clear()
+    const { logout } = usePocketbase()
+    await logout()
   },
 
   async getCurrentUser() {
-    const pb = usePocketBaseService()
-    const user = await profileApi.getMe() || pb?.authStore.record
+    const user = await profileApi.getMe()
     return user ? mapRecordToUser(user) : null
   },
 
   async refreshSession() {
-    const pb = usePocketBaseService()
-    await pb.refreshAuth()
-    const user = await profileApi.getMe() || pb?.authStore.record
+    const { refreshAuth } = usePocketbase()
+    await refreshAuth()
+    const user = await profileApi.getMe()
     return user ? mapRecordToUser(user) : null
   },
 
   async updateProfile(userId: string, data: Partial<User>) {
-    const pb = usePocketBaseService()
+    const { pb } = usePocketbase()
     const record = await pb?.collection('users').update(userId, data)
     return record ? mapRecordToUser(record) : null
   },
 
   async requestPasswordReset(email: string) {
-    const pb = usePocketBaseService()
+    const { pb } = usePocketbase()
     await pb?.collection('users').requestPasswordReset(email)
   },
 
   async confirmPasswordReset(params: PasswordResetConfirmation) {
-    const pb = usePocketBaseService()
+    const { pb } = usePocketbase()
     await pb?.collection('users').confirmPasswordReset(
       params.token,
       params.password,
@@ -113,8 +111,8 @@ export const authApi = {
   },
 
   async requestOTP(email: string): Promise<OTPResponse> {
-    const pb = usePocketBaseService()
-    const result = await pb.collection('users').requestOTP(email)
+    const { pb } = usePocketbase()
+    const result = await pb?.collection('users').requestOTP(email)
     return {
       otpId: result.otpId,
       expiresIn: 300 // 5 minutes
@@ -122,8 +120,8 @@ export const authApi = {
   },
 
   async verifyOTP(params: OTPRequest): Promise<User | null> {
-    const pb = usePocketBaseService()
-    const result = await pb.send('/api/users/verify-otp', {
+    const { send } = usePocketbase()
+    const result = await send('/api/users/verify-otp', {
       method: 'POST',
       body: params
     })

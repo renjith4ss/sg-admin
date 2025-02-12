@@ -1,5 +1,5 @@
 import { navigateTo } from '#app'
-import { usePocketBaseService } from './pocketbase'
+import { usePocketbase } from '~/composables/usePocketbase'
 
 class ApiClient {
   private BASE_ENDPOINT = '/admin/api/v1'
@@ -8,20 +8,10 @@ class ApiClient {
     navigateTo('/login')
   }
 
-  private getPocketBase() {
-    const pb = usePocketBaseService()
-    if (!pb?.authStore.token) {
-      this.handleAuthError()
-      throw new Error('Authentication required')
-    }
-    return pb
-  }
-
   protected async get<T>(endpoint: string): Promise<T> {
     try {
-      const pb = this.getPocketBase()
-      console.log(`${this.BASE_ENDPOINT}/${endpoint}`, pb.authStore);
-      const response = await pb.send(`${this.BASE_ENDPOINT}/${endpoint}`, {
+      const { send } = usePocketbase()
+      const response = await send(`${this.BASE_ENDPOINT}/${endpoint}`, {
         method: 'GET'
       })
       return response as T
@@ -35,8 +25,8 @@ class ApiClient {
 
   protected async post<T>(endpoint: string, body: any): Promise<T> {
     try {
-      const pb = this.getPocketBase()
-      const response = await pb.send(`${this.BASE_ENDPOINT}/${endpoint}`, {
+      const { send } = usePocketbase()
+      const response = await send(`${this.BASE_ENDPOINT}/${endpoint}`, {
         method: 'POST',
         body
       })
@@ -51,8 +41,8 @@ class ApiClient {
 
   protected async patch<T>(endpoint: string, body?: any): Promise<T> {
     try {
-      const pb = this.getPocketBase()
-      const response = await pb.send(`${this.BASE_ENDPOINT}/${endpoint}`, {
+      const { send } = usePocketbase()
+      const response = await send(`${this.BASE_ENDPOINT}/${endpoint}`, {
         method: 'PATCH',
         body
       })
@@ -67,8 +57,8 @@ class ApiClient {
 
   protected async put<T>(endpoint: string, body: any): Promise<T> {
     try {
-      const pb = this.getPocketBase()
-      const response = await pb.send(`${this.BASE_ENDPOINT}/${endpoint}`, {
+      const { send } = usePocketbase()
+      const response = await send(`${this.BASE_ENDPOINT}/${endpoint}`, {
         method: 'PUT',
         body
       })
@@ -83,8 +73,8 @@ class ApiClient {
 
   protected async delete<T>(endpoint: string): Promise<T> {
     try {
-      const pb = this.getPocketBase()
-      const response = await pb.send(`${this.BASE_ENDPOINT}/${endpoint}`, {
+      const { send } = usePocketbase()
+      const response = await send(`${this.BASE_ENDPOINT}/${endpoint}`, {
         method: 'DELETE'
       })
       return response as T

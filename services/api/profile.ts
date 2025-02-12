@@ -5,7 +5,7 @@ class ProfileApi extends ApiClient {
   private readonly resource = 'profile'
 
   async getMe(): Promise<User> {
-    return this.get(`/me`)
+    return this.get(`me`)
   }
 }
 
