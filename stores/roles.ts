@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { rolesApi } from '~/services/api/roles'
+import type { Api } from '~/types/api'
 import type { Role, RolesState } from '~/types/roles'
 
 export const useRolesStore = defineStore('roles', {
@@ -22,7 +22,8 @@ export const useRolesStore = defineStore('roles', {
       this.error = null
       
       try {
-        const roles = await rolesApi.getAll()
+        const $api = useNuxtApp().$api as Api
+        const roles = await $api.roles.getAll()
         this.roles = roles
         return roles
       } catch (err: any) {
@@ -38,7 +39,8 @@ export const useRolesStore = defineStore('roles', {
       this.error = null
       
       try {
-        const role = await rolesApi.create(roleData)
+        const $api = useNuxtApp().$api as Api
+        const role = await $api.roles.create(roleData)
         if (role) {
           this.roles.push(role)
         }
@@ -56,7 +58,8 @@ export const useRolesStore = defineStore('roles', {
       this.error = null
       
       try {
-        const role = await rolesApi.update(id, roleData)
+        const $api = useNuxtApp().$api as Api
+        const role = await $api.roles.update(id, roleData)
         if (role) {
           const index = this.roles.findIndex((r: Role) => r.id === id)
           if (index !== -1) {
@@ -77,7 +80,8 @@ export const useRolesStore = defineStore('roles', {
       this.error = null
       
       try {
-        const role = await rolesApi.deleteOne(id)
+        const $api = useNuxtApp().$api as Api
+        const role = await $api.roles.deleteOne(id)
         if (role) {
           const index = this.roles.findIndex((r: Role) => r.id === id)
           if (index !== -1) {
@@ -98,7 +102,8 @@ export const useRolesStore = defineStore('roles', {
       this.error = null
       
       try {
-        const role = await rolesApi.getOne(id)
+        const $api = useNuxtApp().$api as Api
+        const role = await $api.roles.getOne(id)
         if (role) {
           this.currentRole = role
           const index = this.roles.findIndex((r: Role) => r.id === id)
