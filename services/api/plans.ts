@@ -1,8 +1,20 @@
+import type PocketBase from 'pocketbase'
 import type { Plan } from '~/types/plans'
 import ApiClient from '../client'
-
-class PlansApi extends ApiClient {
+export class PlansApi extends ApiClient {
   private readonly resource = 'plans'
+  private static instance: PlansApi | null = null
+
+  private constructor(pb: PocketBase) {
+    super(pb)
+  }
+
+  public static getInstance(pb: PocketBase): PlansApi {
+    if (!PlansApi.instance) {
+      PlansApi.instance = new PlansApi(pb)
+    }
+    return PlansApi.instance
+  }
 
   async getAll(): Promise<Plan[]> {
     return this.get(`${this.resource}`)
@@ -17,7 +29,7 @@ class PlansApi extends ApiClient {
   }
 
   async deleteOne(id: string): Promise<Plan | null> {
-    return super.delete(`${this.resource}/${id}`)
+    return this.delete(`${this.resource}/${id}`)
   }
 
   async getOne(id: string): Promise<Plan | null> {
@@ -29,4 +41,4 @@ class PlansApi extends ApiClient {
   }
 }
 
-export const plansApi = new PlansApi() 
+export const createPlansApi = (pb: PocketBase) => PlansApi.getInstance(pb) 

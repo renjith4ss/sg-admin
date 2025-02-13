@@ -1,7 +1,7 @@
+import type PocketBase from 'pocketbase'
 import type { RecordModel } from 'pocketbase'
-import { usePocketbase } from '~/composables/usePocketbase'
-import type { LoginCredentials, MFAResponse, OTPRequest, OTPResponse, PasswordResetConfirmation, User } from '~/types/auth'
-import { profileApi } from './profile'
+import type { LoginCredentials, User } from '~/types/auth'
+import ApiClient from '../client'
 
 function mapRecordToUser(record: RecordModel): User {
   return {
@@ -33,98 +33,69 @@ function mapRecordToUser(record: RecordModel): User {
   }
 }
 
-export const authApi = {
+export class AuthApi extends ApiClient {
+  private static instance: AuthApi | null = null
+
+  private constructor(pb: PocketBase) {
+    super(pb)
+  }
+
+  public static getInstance(pb: PocketBase): AuthApi {
+    if (!AuthApi.instance) {
+      AuthApi.instance = new AuthApi(pb)
+    }
+    return AuthApi.instance
+  }
 
   isAuthenticated(): boolean {
-    const { pb } = usePocketbase()
-    return !!(pb?.authStore.isValid && pb?.authStore.token && pb?.authStore.record)
-  },
+    return this.pb?.authStore.isValid && 
+           !!this.pb?.authStore.token && 
+           !!this.pb?.authStore.record
+  }
 
-  isTokenExpired() {
-    const { pb } = usePocketbase()
-    return pb?.authStore.isValid
-  },
+  isTokenExpired(): boolean {
+    return this.pb?.authStore.isValid
+  }
 
-  async login(credentials: LoginCredentials): Promise<User | MFAResponse> {
-    const { login } = usePocketbase()
+  async login(credentials: LoginCredentials): Promise<User | null> {
     try {
-      const authData = await login(
-        credentials
+      const authData = await this.pb.collection('_superusers').authWithPassword(
+        credentials.email,
+        credentials.password
       )
-      const user = mapRecordToUser(authData.record)
-      
-      // Check if MFA is required
-      if (user.needsMfa && user.mfaId) {
-        return {
-          needsMfa: true,
-          mfaId: user.mfaId
-        }
+
+      // Ensure token is saved in PocketBase's auth store
+      if (authData?.token) {
+        this.pb.authStore.save(authData.token, authData.record)
       }
-      
-      return user
+
+      return authData.record ? mapRecordToUser(authData.record) : null
     } catch (error: any) {
-      if (error.data?.needsMfa && error.data?.mfaId) {
-        return {
-          needsMfa: true,
-          mfaId: error.data.mfaId
-        }
-      }
+      console.error('Login failed:', error)
       throw error
     }
-  },
+  }
 
   async logout() {
-    const { logout } = usePocketbase()
-    await logout()
-  },
-
-  async getCurrentUser() {
-    const user = await profileApi.getMe()
-    return user ? mapRecordToUser(user) : null
-  },
-
-  async refreshSession() {
-    const { refreshAuth } = usePocketbase()
-    await refreshAuth()
-    const user = await profileApi.getMe()
-    return user ? mapRecordToUser(user) : null
-  },
-
-  async updateProfile(userId: string, data: Partial<User>) {
-    const { pb } = usePocketbase()
-    const record = await pb?.collection('users').update(userId, data)
-    return record ? mapRecordToUser(record) : null
-  },
-
-  async requestPasswordReset(email: string) {
-    const { pb } = usePocketbase()
-    await pb?.collection('users').requestPasswordReset(email)
-  },
-
-  async confirmPasswordReset(params: PasswordResetConfirmation) {
-    const { pb } = usePocketbase()
-    await pb?.collection('users').confirmPasswordReset(
-      params.token,
-      params.password,
-      params.passwordConfirm
-    )
-  },
-
-  async requestOTP(email: string): Promise<OTPResponse> {
-    const { pb } = usePocketbase()
-    const result = await pb?.collection('users').requestOTP(email)
-    return {
-      otpId: result.otpId,
-      expiresIn: 300 // 5 minutes
+    try {
+      this.pb.authStore.clear()
+    } catch (error) {
+      console.error('Logout failed:', error)
+      throw error
     }
-  },
-
-  async verifyOTP(params: OTPRequest): Promise<User | null> {
-    const { send } = usePocketbase()
-    const result = await send('/api/users/verify-otp', {
-      method: 'POST',
-      body: params
-    })
-    return result?.record ? mapRecordToUser(result.record) : null
   }
-} 
+
+  async initialize(token?: string | null) {
+    try {
+      if (token) {
+        this.pb.authStore.save(token)
+      }
+    } catch (error) {
+      console.error('Auth initialization failed:', error)
+      this.pb.authStore.clear()
+      throw error
+    }
+  }
+}
+
+export const createAuthApi = (pb: PocketBase) => AuthApi.getInstance(pb) 

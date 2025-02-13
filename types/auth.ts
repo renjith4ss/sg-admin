@@ -52,6 +52,7 @@ export interface AuthState {
   isLoading: boolean
   error: string | null
   user: User | null
+  initialized: boolean
 }
 
 export interface OTPRequest {

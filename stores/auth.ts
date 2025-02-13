@@ -1,33 +1,44 @@
 import { defineStore } from 'pinia'
-import { authApi } from '~/services/api/auth'
-import type { AuthState, LoginCredentials, MFAResponse, OTPRequest, OTPResponse, PasswordResetConfirmation, User } from '~/types/auth'
+import type { Api } from '~/types/api'
+import type { AuthState, LoginCredentials, User } from '~/types/auth'
 
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     isLoading: false,
     error: null,
-    user: null
+    user: null,
+    initialized: false
   }),
 
   getters: {
     currentUser: (state) => state.user,
-    isAuthenticated: () => authApi.isAuthenticated(),
-    isTokenExpired: () => authApi.isTokenExpired()
+    isAuthenticated: (state) => {
+      const $api = useNuxtApp().$api as Api
+      return $api.auth.isAuthenticated()
+    },
+    isTokenExpired: () => {
+      const $api = useNuxtApp().$api as Api
+      return !$api.auth.isAuthenticated()
+    },
+    isInitialized: (state) => state.initialized
   },
 
   actions: {
-    async login(credentials: LoginCredentials): Promise<User | MFAResponse> {
+    async login(credentials: LoginCredentials): Promise<User | null> {
       this.isLoading = true
       this.error = null
       
       try {
-        const result = await authApi.login(credentials)
-        if ('needsMfa' in result) {
-          return result
+        const $api = useNuxtApp().$api as Api
+        const result = await $api.auth.login(credentials)
+        if (result) {
+          this.user = result
+          // Fetch full user profile after login
+          await this.refreshSession()
         }
-        const user = await authApi.getCurrentUser()
-        return user || result
+        return this.user
       } catch (err: any) {
+        console.error('login error:', err)
         this.error = err.message || 'Failed to login'
         throw err
       } finally {
@@ -40,7 +51,9 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       
       try {
-        await authApi.logout()
+        const $api = useNuxtApp().$api as Api
+        await $api.auth.logout()
+        this.user = null
       } catch (err: any) {
         this.error = err.message || 'Failed to logout'
         throw err
@@ -49,104 +62,19 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async refreshSession() {
+    async refreshSession(): Promise<User | null> {
       this.isLoading = true
       this.error = null
       
       try {
-        const user = await authApi.refreshSession()
-        return user
+        const $api = useNuxtApp().$api as Api
+        this.user = await $api.profile.getMe()
+        return this.user
       } catch (err: any) {
+        console.error('refresh session error:', err)
         this.error = err.message || 'Failed to refresh session'
-        throw err
-      } finally {
-        this.isLoading = false
-      }
-    },
-
-    async updateProfile(data: Partial<User>) {
-      if (!this.user) throw new Error('No user logged in')
-      
-      this.isLoading = true
-      this.error = null
-      
-      try {
-        const user = await authApi.updateProfile(this.user.id, data)
-        return user
-      } catch (err: any) {
-        this.error = err.message || 'Failed to update profile'
-        throw err
-      } finally {
-        this.isLoading = false
-      }
-    },
-
-    async requestPasswordReset(email: string) {
-      this.isLoading = true
-      this.error = null
-      
-      try {
-        await authApi.requestPasswordReset(email)
-      } catch (err: any) {
-        this.error = err.message || 'Failed to request password reset'
-        throw err
-      } finally {
-        this.isLoading = false
-      }
-    },
-
-    async confirmPasswordReset(params: PasswordResetConfirmation) {
-      this.isLoading = true
-      this.error = null
-      
-      try {
-        await authApi.confirmPasswordReset(params)
-      } catch (err: any) {
-        this.error = err.message || 'Failed to confirm password reset'
-        throw err
-      } finally {
-        this.isLoading = false
-      }
-    },
-
-    async requestOTP(email: string): Promise<OTPResponse> {
-      this.isLoading = true
-      this.error = null
-      
-      try {
-        const result = await authApi.requestOTP(email)
-        return result
-      } catch (err: any) {
-        this.error = err.message || 'Failed to request OTP'
-        throw err
-      } finally {
-        this.isLoading = false
-      }
-    },
-
-    async verifyOTP(params: OTPRequest): Promise<User | null> {
-      this.isLoading = true
-      this.error = null
-      
-      try {
-        const user = await authApi.verifyOTP(params)
-        return user
-      } catch (err: any) {
-        this.error = err.message || 'Failed to verify OTP'
-        throw err
-      } finally {
-        this.isLoading = false
-      }
-    },
-
-    async fetchCurrentUser() {
-      this.isLoading = true
-      this.error = null
-      
-      try {
-        this.user = await authApi.getCurrentUser()
-      } catch (err: any) {
-        this.error = err.message || 'Failed to fetch current user'
+        // If refresh fails, logout
+        await this.logout()
         throw err
       } finally {
         this.isLoading = false

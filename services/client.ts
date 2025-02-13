@@ -1,8 +1,13 @@
 import { navigateTo } from '#app'
-import { usePocketbase } from '~/composables/usePocketbase'
+import type PocketBase from 'pocketbase'
 
 class ApiClient {
   private BASE_ENDPOINT = '/admin/api/v1'
+  protected pb: PocketBase
+
+  constructor(pb: PocketBase) {
+    this.pb = pb
+  }
 
   private handleAuthError() {
     navigateTo('/login')
@@ -10,8 +15,7 @@ class ApiClient {
 
   protected async get<T>(endpoint: string): Promise<T> {
     try {
-      const { send } = usePocketbase()
-      const response = await send(`${this.BASE_ENDPOINT}/${endpoint}`, {
+      const response = await this.pb.send(`${this.BASE_ENDPOINT}/${endpoint}`, {
         method: 'GET'
       })
       return response as T
@@ -25,8 +29,7 @@ class ApiClient {
 
   protected async post<T>(endpoint: string, body: any): Promise<T> {
     try {
-      const { send } = usePocketbase()
-      const response = await send(`${this.BASE_ENDPOINT}/${endpoint}`, {
+      const response = await this.pb.send(`${this.BASE_ENDPOINT}/${endpoint}`, {
         method: 'POST',
         body
       })
@@ -41,8 +44,7 @@ class ApiClient {
 
   protected async patch<T>(endpoint: string, body?: any): Promise<T> {
     try {
-      const { send } = usePocketbase()
-      const response = await send(`${this.BASE_ENDPOINT}/${endpoint}`, {
+      const response = await this.pb.send(`${this.BASE_ENDPOINT}/${endpoint}`, {
         method: 'PATCH',
         body
       })
@@ -57,8 +59,7 @@ class ApiClient {
 
   protected async put<T>(endpoint: string, body: any): Promise<T> {
     try {
-      const { send } = usePocketbase()
-      const response = await send(`${this.BASE_ENDPOINT}/${endpoint}`, {
+      const response = await this.pb.send(`${this.BASE_ENDPOINT}/${endpoint}`, {
         method: 'PUT',
         body
       })
@@ -73,8 +74,7 @@ class ApiClient {
 
   protected async delete<T>(endpoint: string): Promise<T> {
     try {
-      const { send } = usePocketbase()
-      const response = await send(`${this.BASE_ENDPOINT}/${endpoint}`, {
+      const response = await this.pb.send(`${this.BASE_ENDPOINT}/${endpoint}`, {
         method: 'DELETE'
       })
       return response as T

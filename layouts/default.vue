@@ -110,7 +110,7 @@
 <script setup lang="ts">
 const colorMode = useColorMode()
 const router = useRouter()
-const { logout } = useAuth()
+const { logout } = useAuthStore()
 
 // Dummy user data - replace with real data later
 const user = ref({

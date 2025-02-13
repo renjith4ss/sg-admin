@@ -1,8 +1,21 @@
-import type { Tenant, PaginatedResponse, TenantQueryParams } from '~/types/tenants'
+import type PocketBase from 'pocketbase'
+import type { PaginatedResponse, Tenant, TenantQueryParams } from '~/types/tenants'
 import ApiClient from '../client'
 
-class TenantsApi extends ApiClient {
+export class TenantsApi extends ApiClient {
   private readonly resource = 'tenants'
+  private static instance: TenantsApi | null = null
+
+  private constructor(pb: PocketBase) {
+    super(pb)
+  }
+
+  public static getInstance(pb: PocketBase): TenantsApi {
+    if (!TenantsApi.instance) {
+      TenantsApi.instance = new TenantsApi(pb)
+    }
+    return TenantsApi.instance
+  }
 
   async getAll(params: TenantQueryParams = {}): Promise<PaginatedResponse<Tenant>> {
     const queryParams = new URLSearchParams()
@@ -25,7 +38,7 @@ class TenantsApi extends ApiClient {
   }
 
   async deleteOne(id: string): Promise<Tenant | null> {
-    return super.delete(`${this.resource}/${id}`)
+    return this.delete(`${this.resource}/${id}`)
   }
 
   async getOne(id: string): Promise<Tenant | null> {
@@ -33,4 +46,4 @@ class TenantsApi extends ApiClient {
   }
 }
 
-export const tenantsApi = new TenantsApi() 
+export const createTenantsApi = (pb: PocketBase) => TenantsApi.getInstance(pb) 
