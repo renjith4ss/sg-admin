@@ -73,8 +73,6 @@ export const useAuthStore = defineStore('auth', {
       } catch (err: any) {
         console.error('refresh session error:', err)
         this.error = err.message || 'Failed to refresh session'
-        // If refresh fails, logout
-        await this.logout()
         throw err
       } finally {
         this.isLoading = false

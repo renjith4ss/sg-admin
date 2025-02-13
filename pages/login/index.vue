@@ -163,6 +163,7 @@ const isLoading = ref(false);
 
 const authStore = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 
 async function handleSubmit(values: any) {
   if (isLoading.value) return;
@@ -173,7 +174,8 @@ async function handleSubmit(values: any) {
       email: values.email,
       password: values.password,
     });
-    router.push("/");
+    const redirect = route.query.redirect as string;
+    router.push(redirect || "/");
   } catch (err: any) {
     error.value = err.message || "Failed to login";
     console.error("Login error:", err);

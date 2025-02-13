@@ -416,10 +416,6 @@ onMounted(async () => {
   await fetchRoles();
 });
 
-definePageMeta({
-  middleware: ["auth"],
-});
-
 // Add new state
 const isGridView = ref(true);
 
