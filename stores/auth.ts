@@ -16,10 +16,6 @@ export const useAuthStore = defineStore('auth', {
       const $api = useNuxtApp().$api as Api
       return $api.auth.isAuthenticated()
     },
-    isTokenExpired: () => {
-      const $api = useNuxtApp().$api as Api
-      return !$api.auth.isAuthenticated()
-    },
     isInitialized: (state) => state.initialized
   },
 

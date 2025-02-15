@@ -9,9 +9,7 @@ import { createTenantsApi } from '~/services/api/tenants'
 import type { Api } from '~/types/api'
 
 export default defineNuxtPlugin(() => {
-  const config = useRuntimeConfig()
-
-  const pb = new PocketBase(config.public.pocketbaseUrl)
+  const pb = useNuxtApp().$pb as PocketBase
 
   const api: Api = {
     auth: createAuthApi(pb),
@@ -24,7 +22,6 @@ export default defineNuxtPlugin(() => {
   
   return {
     provide: {
-      pb,
       api
     }
   }

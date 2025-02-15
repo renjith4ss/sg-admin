@@ -53,10 +53,6 @@ export class AuthApi extends ApiClient {
            !!this.pb?.authStore.record
   }
 
-  isTokenExpired(): boolean {
-    return this.pb?.authStore.isValid
-  }
-
   async login(credentials: LoginCredentials): Promise<User | null> {
     try {
       const authData = await this.pb.collection('_superusers').authWithPassword(
@@ -81,18 +77,6 @@ export class AuthApi extends ApiClient {
       this.pb.authStore.clear()
     } catch (error) {
       console.error('Logout failed:', error)
-      throw error
-    }
-  }
-
-  async initialize(token?: string | null) {
-    try {
-      if (token) {
-        this.pb.authStore.save(token)
-      }
-    } catch (error) {
-      console.error('Auth initialization failed:', error)
-      this.pb.authStore.clear()
       throw error
     }
   }

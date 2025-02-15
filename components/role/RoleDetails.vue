@@ -10,6 +10,12 @@
           </div>
           {{ role.name }}
         </DialogTitle>
+        <div v-if="role.protected" class="mt-2">
+          <Badge variant="destructive" class="gap-1">
+            <Icon name="heroicons:shield-check" class="h-3.5 w-3.5" />
+            Protected Role
+          </Badge>
+        </div>
       </DialogHeader>
 
       <div class="space-y-6">
@@ -45,7 +51,7 @@
       </div>
 
       <DialogFooter>
-        <div class="mt-6 flex justify-end gap-3">
+        <div v-if="!role.protected" class="mt-6 flex justify-end gap-3">
           <Button variant="destructive" @click="showDeleteAlert = true">
             Delete
           </Button>

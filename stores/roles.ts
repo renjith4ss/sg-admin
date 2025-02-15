@@ -85,7 +85,7 @@ export const useRolesStore = defineStore('roles', {
         if (role) {
           const index = this.roles.findIndex((r: Role) => r.id === id)
           if (index !== -1) {
-            this.roles[index] = role
+            this.roles.splice(index, 1)
           }
         }
         return role

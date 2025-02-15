@@ -7,6 +7,7 @@ export type Role = {
   permissions: Permission[]
   created: string
   updated: string
+  protected: boolean
 }
 
 export type RolesState ={

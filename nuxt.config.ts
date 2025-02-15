@@ -7,7 +7,8 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     'pinia-plugin-persistedstate/nuxt',
     '@nuxt/icon',
-    '@nuxt/fonts'
+    '@nuxt/fonts',
+    '@hebilicious/vue-query-nuxt',
   ],
 
   css: ['~/assets/css/main.scss'],

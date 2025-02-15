@@ -78,10 +78,6 @@
                 <TableHead>Name</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Permissions</TableHead>
-                <TableHead class="w-[80px]"> Members </TableHead>
-                <TableHead class="w-[80px]"> Storage </TableHead>
-                <TableHead class="w-[80px]"> Displays </TableHead>
-                <TableHead class="w-[80px]"> Actions </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -163,7 +159,6 @@
                   id="description"
                   v-model="formData.description"
                   rows="3"
-                  required
                 />
               </div>
             </div>
@@ -176,15 +171,30 @@
                   >Permissions</Label
                 >
                 <div
-                  class="mt-2 h-[600px] space-y-2 overflow-y-auto rounded-md border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
+                  class="mt-2 h-[600px] space-y-4 overflow-y-auto rounded-md border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
                 >
+                  <!-- Select All Checkbox -->
+                  <div class="flex items-center gap-2 pb-2 border-b border-gray-200 dark:border-gray-700">
+                    <Checkbox 
+                      :checked="isAllSelected" 
+                      @update:checked="toggleSelectAll"
+                      id="select-all"
+                    />
+                    <Label for="select-all" class="font-medium">Select All Permissions</Label>
+                  </div>
+
+                  <!-- Individual Permissions -->
                   <div
-                    v-for="(permission, index) in formData.permissions"
-                    :key="index"
-                    class="flex gap-2"
+                    v-for="permission in availablePermissions"
+                    :key="permission"
+                    class="flex items-center gap-2"
                   >
-                    <Checkbox v-model="formData.permissions[index]" />
-                    <Label>{{ permission }}</Label>
+                    <Checkbox 
+                      :checked="formData.permissions.includes(permission)"
+                      @update:checked="(checked: boolean) => togglePermission(permission, checked)"
+                      :id="permission"
+                    />
+                    <Label :for="permission">{{ permission }}</Label>
                   </div>
                 </div>
               </div>
@@ -239,11 +249,12 @@
 
 <script setup lang="ts">
 import { Icon } from '#components';
-import RoleCard from '~/components/roles/RoleCard.vue';
-import RoleForm from '~/components/roles/RoleForm.vue';
+import { storeToRefs } from 'pinia';
+import RoleCard from '~/components/role/RoleCard.vue';
 import { Button } from '~/components/ui/button';
 import { useDialog } from '~/composables/useDialog';
 import { useRoles } from "~/composables/useRoles";
+import { useAuthStore } from '~/stores/auth';
 import type { Permission } from "~/types/permissions";
 import type { Role } from "~/types/roles";
 
@@ -258,6 +269,8 @@ const {
 } = useRoles();
 
 const dialog = useDialog()
+
+const { currentUser } = storeToRefs(useAuthStore())
 
 // State
 const searchQuery = ref("");
@@ -274,23 +287,7 @@ const formData = reactive({
   name: "",
   description: "",
   permissions: [] as Permission[],
-  created: "",
-  updated: "",
-});
-
-// Computed
-const filteredRoles = computed(() => {
-  let filtered = roles.value;
-
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(
-      (role: Role) =>
-        role.name.toLowerCase().includes(query) ||
-        role.description.toLowerCase().includes(query)
-    );
-  }
-  return filtered;
+  protected: false
 });
 
 const isEditing = computed(() => !!selectedRole.value);
@@ -318,15 +315,40 @@ const hasChanges = computed(() => {
   return permissionsChanged || otherFieldsChanged;
 });
 
+// Permissions handling
+const availablePermissions = computed(() => currentUser.value?.permissions || [])
+
+const isAllSelected = computed(() => {
+  return availablePermissions.value.length > 0 && 
+         formData.permissions.length === availablePermissions.value.length &&
+         availablePermissions.value.every(p => formData.permissions.includes(p))
+})
+
+const toggleSelectAll = (checked: boolean) => {
+  if (checked) {
+    formData.permissions = [...availablePermissions.value]
+  } else {
+    formData.permissions = []
+  }
+}
+
+const togglePermission = (permission: Permission, checked: boolean) => {
+  if (checked) {
+    formData.permissions.push(permission)
+  } else {
+    const index = formData.permissions.indexOf(permission)
+    if (index > -1) {
+      formData.permissions.splice(index, 1)
+    }
+  }
+}
 
 // Methods
 const resetForm = () => {
   Object.assign(formData, {
     name: "",
     description: "",
-    permissions: [],
-    created: "",
-    updated: "",
+    permissions: []
   });
   formError.value = null;
 };
@@ -429,54 +451,4 @@ const showRoleDetails = (role: Role) => {
   showDetailsDialog.value = true;
 };
 
-const columns = [
-  {
-    accessorKey: 'name',
-    header: 'Name'
-  },
-  {
-    accessorKey: 'description',
-    header: 'Description'
-  },
-  {
-    id: 'actions',
-    cell: ({ row }: { row: { original: Role } }) => {
-      const role = row.original
-
-      const handleEdit = () => {
-        dialog.create({
-          title: 'Edit Role',
-          content: () => h(RoleForm, {
-            mode: 'edit',
-            initialData: role,
-            onSubmit: async (data) => {
-              await updateRole(role.id, data)
-              dialog.close()
-            },
-            onCancel: () => dialog.close()
-          })
-        })
-      }
-
-      const handleDelete = async () => {
-        if (await confirm('Are you sure you want to delete this role?')) {
-          await deleteRole(role.id)
-        }
-      }
-
-      return h('div', { class: 'flex gap-2' }, [
-        h(Button, {
-          variant: 'ghost',
-          size: 'icon',
-          onClick: handleEdit
-        }, () => h(Icon, { name: 'heroicons:pencil-square' })),
-        h(Button, {
-          variant: 'ghost',
-          size: 'icon',
-          onClick: handleDelete
-        }, () => h(Icon, { name: 'heroicons:trash' }))
-      ])
-    }
-  }
-]
 </script>
