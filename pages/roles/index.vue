@@ -46,16 +46,21 @@
       </div>
     </div>
 
+    <!-- Loading State -->
+    <div v-if="isLoading" class="flex justify-center py-8">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
+    </div>
+
     <!-- Grid View -->
-    <div v-if="isGridView" class="space-y-8">
+    <div v-else-if="isGridView" class="space-y-8">
       <!-- Regular Plans Section -->
-      <div v-if="roles.length > 0">
+      <div v-if="safeRoles.length > 0">
         <h2 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
           Roles
         </h2>
         <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <RoleCard
-            v-for="role in roles"
+            v-for="role in safeRoles"
             :key="role.id"
             :role="role"
             @click="showRoleDetails(role)"
@@ -67,7 +72,7 @@
     <!-- List View -->
     <div v-else class="space-y-8">
       <!-- Regular Plans Section -->
-      <div v-if="roles.length > 0">
+      <div v-if="safeRoles.length > 0">
         <h2 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
           Roles
         </h2>
@@ -82,7 +87,7 @@
             </TableHeader>
             <TableBody>
               <TableRow
-                v-for="role in roles"
+                v-for="role in safeRoles"
                 :key="role.id"
                 class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50"
                 @click="showRoleDetails(role)"
@@ -104,7 +109,7 @@
 
       <!-- Empty State -->
       <div
-        v-if="roles.length === 0"
+        v-if="safeRoles.length === 0"
         class="flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-white py-12 dark:border-gray-700 dark:bg-gray-800"
       >
         <div
@@ -249,55 +254,55 @@
 
 <script setup lang="ts">
 import { Icon } from '#components';
-import { storeToRefs } from 'pinia';
 import RoleCard from '~/components/role/RoleCard.vue';
 import { Button } from '~/components/ui/button';
-import { useDialog } from '~/composables/useDialog';
-import { useRoles } from "~/composables/useRoles";
-import { useAuthStore } from '~/stores/auth';
+import { useRolesQuery } from '~/composables/useRolesQuery';
 import type { Permission } from "~/types/permissions";
-import type { Role } from "~/types/roles";
+import type { Role, RoleFormState } from "~/types/roles";
 
-const {
-  roles,
-  isLoading,
-  error,
-  fetchRoles,
-  createRole,
-  updateRole,
-  deleteRole
-} = useRoles();
+// View state
+const isGridView = ref(true)
+const searchQuery = ref('')
+const toggleViewMode = () => isGridView.value = !isGridView.value
 
-const dialog = useDialog()
+// Queries and mutations
+const { useRoles, useCreateRole, useUpdateRole, useDeleteRole } = useRolesQuery()
+const { data: roles, isLoading } = useRoles()
+const createRoleMutation = useCreateRole()
+const updateRoleMutation = useUpdateRole()
+const deleteRoleMutation = useDeleteRole()
 
-const { currentUser } = storeToRefs(useAuthStore())
-
-// State
-const searchQuery = ref("");
-const showDeletedPlans = ref(false);
-const showCreateDialog = ref(false);
-const selectedRole = ref<Role | null>(null);
-const isSubmitting = ref(false);
-const formError = ref<string | null>(null);
-const showDetailsDialog = ref(false);
-const selectedRoleForDetails = ref<Role | null>(null);
+// Dialog state
+const showCreateDialog = ref(false)
+const showDetailsDialog = ref(false)
+const selectedRoleForDetails = ref<Role | null>(null)
+const isEditing = ref(false)
+const formError = ref('')
+const isSubmitting = ref(false)
 
 // Form state
-const formData = reactive({
-  name: "",
-  description: "",
+const initialFormData: RoleFormState = {
+  name: '',
+  description: '',
   permissions: [] as Permission[],
   protected: false
-});
+}
+const formData = ref({ ...initialFormData })
+const originalFormData = ref({ ...initialFormData })
 
-const isEditing = computed(() => !!selectedRole.value);
+// Computed for safe roles access
+const safeRoles = computed(() => roles.value || [])
+
+const authStore = useAuthStore()
+// Permissions
+const availablePermissions = computed<Permission[]>(() => authStore.currentUser?.permissions || [])
+
 
 const hasChanges = computed(() => {
-  const role = selectedRole.value;
+  const role = originalFormData.value;
   if (!role) return true; // Always true for new roles
-
   // Compare features array - check length and content
-  const cleanPermissions = formData.permissions.filter(f => f.trim());
+  const cleanPermissions = formData.value.permissions.filter(f => f.trim());
   const cleanOriginalPermissions = role.permissions.filter(f => f.trim());
   
   const permissionsChanged = 
@@ -305,150 +310,111 @@ const hasChanges = computed(() => {
     cleanPermissions.some((f, i) => f !== cleanOriginalPermissions[i]);
 
   // Compare other fields
-  const otherFieldsChanged = Object.keys(formData).some(key => {
+  const otherFieldsChanged = Object.keys(formData.value).some(key => {
     if (key === 'permissions') return false;
-    const formValue = formData[key as keyof typeof formData];
-    const originalValue = role[key as keyof Role];
+    const formValue = formData.value[key as keyof RoleFormState];
+    const originalValue = role[key as keyof RoleFormState];
     return formValue !== originalValue;
   });
 
   return permissionsChanged || otherFieldsChanged;
 });
 
-// Permissions handling
-const availablePermissions = computed(() => currentUser.value?.permissions || [])
-
 const isAllSelected = computed(() => {
-  return availablePermissions.value.length > 0 && 
-         formData.permissions.length === availablePermissions.value.length &&
-         availablePermissions.value.every(p => formData.permissions.includes(p))
+  return availablePermissions.value.every(permission => formData.value.permissions.includes(permission))
 })
 
-const toggleSelectAll = (checked: boolean) => {
-  if (checked) {
-    formData.permissions = [...availablePermissions.value]
-  } else {
-    formData.permissions = []
+// Methods
+const resetForm = () => {
+  formData.value = { ...initialFormData }
+  originalFormData.value = JSON.parse(JSON.stringify(initialFormData))
+  isEditing.value = false
+  formError.value = ''
+}
+
+const handleCreateRole = () => {
+  resetForm()
+  showCreateDialog.value = true
+}
+
+const editRole = (role: Role) => {
+  formData.value = {
+    name: role.name,
+    description: role.description || '',
+    permissions: [...role.permissions],
+    protected: role.protected
   }
+  originalFormData.value = JSON.parse(JSON.stringify(formData.value))
+  isEditing.value = true
+  showCreateDialog.value = true
+}
+
+const handleDialogClose = (value: boolean) => {
+  if (!value) {
+    resetForm()
+  }
+  showCreateDialog.value = value
+}
+
+const showRoleDetails = (role: Role) => {
+  selectedRoleForDetails.value = role
+  showDetailsDialog.value = true
+}
+
+const toggleSelectAll = (checked: boolean) => {
+  formData.value.permissions = checked ? [...availablePermissions.value] : []
 }
 
 const togglePermission = (permission: Permission, checked: boolean) => {
   if (checked) {
-    formData.permissions.push(permission)
+    formData.value.permissions.push(permission)
   } else {
-    const index = formData.permissions.indexOf(permission)
+    const index = formData.value.permissions.indexOf(permission)
     if (index > -1) {
-      formData.permissions.splice(index, 1)
+      formData.value.permissions.splice(index, 1)
     }
   }
 }
 
-// Methods
-const resetForm = () => {
-  Object.assign(formData, {
-    name: "",
-    description: "",
-    permissions: []
-  });
-  formError.value = null;
-};
-
-const handleCreateRole = () => {
-  selectedRole.value = null;
-  resetForm();
-  showCreateDialog.value = true;
-};
-
-const editRole = (role: Role) => {
-  selectedRole.value = role;
-  Object.assign(formData, {
-    ...role,
-    permissions: [...role.permissions]
-  });
-  showCreateDialog.value = true;
-};
-
 const handleSubmit = async () => {
-  formError.value = null;
-  isSubmitting.value = true;
-
   try {
-    if (selectedRole.value) {
-      // Get only the changed fields for update
-      const changedFields = Object.keys(formData).reduce((acc, key) => {
-        const formValue = formData[key as keyof typeof formData];
-        const originalValue = selectedRole.value![key as keyof Role];
-        
-        // Special handling for features array
-        if (key === 'permissions') {
-          const cleanPermissions = formData.permissions.filter(f => f.trim());
-          const cleanOriginalPermissions = selectedRole.value!.permissions.filter(f => f.trim());
-          if (JSON.stringify(cleanPermissions) !== JSON.stringify(cleanOriginalPermissions)) {
-            acc[key as keyof Role] = cleanPermissions;
-          }
-          return acc;
-        }
+    isSubmitting.value = true
+    formError.value = ''
 
-        // Compare other fields directly
-        if (formValue !== originalValue) {
-          acc[key as keyof Role] = formValue;
-        }
-        return acc;
-      }, {} as Record<keyof Role, any>);
-
-      if (Object.keys(changedFields).length > 0) {
-        await updateRole(selectedRole.value.id, changedFields);
-      }
+    if (isEditing.value && selectedRoleForDetails.value) {
+      await updateRoleMutation.mutateAsync({
+        id: selectedRoleForDetails.value.id,
+        data: formData.value
+      })
     } else {
-      await createRole(formData);
+      await createRoleMutation.mutateAsync(formData.value)
     }
-    showCreateDialog.value = false;
-    resetForm();
-  } catch (err: any) {
-    formError.value = err.message || "Failed to save role";
-    console.error("Failed to save role:", err);
+
+    showCreateDialog.value = false
+    resetForm()
+  } catch (error: any) {
+    formError.value = error.message || 'An error occurred while saving the role'
   } finally {
-    isSubmitting.value = false;
+    isSubmitting.value = false
   }
-};
+}
 
 const confirmDelete = async (role: Role) => {
-  try {
-    isSubmitting.value = true;
-    await deleteRole(role.id);
-  } catch (err: any) {
-    formError.value = err.message || "Failed to delete role";
-    console.error("Failed to delete role:", err);
-  } finally {
-    isSubmitting.value = false;
+  if (confirm(`Are you sure you want to delete the role "${role.name}"?`)) {
+    try {
+      await deleteRoleMutation.mutateAsync(role.id)
+    } catch (error: any) {
+      alert(error.message || 'An error occurred while deleting the role')
+    }
   }
-};
+}
 
-
-const handleDialogClose = (value: boolean) => {
-  if (!value) {
-    showCreateDialog.value = false;
-    selectedRole.value = null;
-    resetForm();
-  }
-};
-
-// Initial load
+// Load initial data
 onMounted(async () => {
-  await fetchRoles();
-});
-
-// Add new state
-const isGridView = ref(true);
-
-// Add new method
-const toggleViewMode = () => {
-  isGridView.value = !isGridView.value;
-};
-
-const showRoleDetails = (role: Role) => {
-  selectedRoleForDetails.value = role;
-  showDetailsDialog.value = true;
-};
-
+  try {
+    await useRoles()
+  } catch (error: any) {
+    console.error('Failed to load roles:', error)
+  }
+})
 </script>

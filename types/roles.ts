@@ -10,9 +10,10 @@ export type Role = {
   protected: boolean
 }
 
-export type RolesState ={
-  roles: Role[]
-  currentRole: Role | null
-  isLoading: boolean
-  error: string | null
+export type RoleFormState ={
+  name: string
+  description: string
+  permissions: Permission[]
+  protected: boolean
 }
+

@@ -144,6 +144,11 @@ const navigationItems = [
     icon: 'ph:users'
   },
   {
+    name: 'Admins',
+    to: '/admins',
+    icon: 'ph:user-gear'
+  },
+  {
     name: 'Roles',
     to: '/roles',
     icon: 'ph:user-focus'

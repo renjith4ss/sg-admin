@@ -1,3 +1,4 @@
+import type { AdminsApi } from "~/services/api/admins"
 import type { AuthApi } from "~/services/api/auth"
 import type { DisplaysApi } from "~/services/api/displays"
 import type { PlansApi } from "~/services/api/plans"
@@ -9,6 +10,7 @@ export type Api = {
   auth: AuthApi,
   tenants: TenantsApi,
   roles: RolesApi,
+  admins: AdminsApi,
   plans: PlansApi,
   profile: ProfileApi,
   displays: DisplaysApi

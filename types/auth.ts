@@ -1,3 +1,4 @@
+import type { Permission } from "./permissions"
 
 export interface AuthCookie {
   token: string
@@ -29,7 +30,7 @@ export interface User {
   froot: string
   needsMfa?: boolean
   mfaId?: string,
-  permissions: string[]
+  permissions: Permission[]
 }
 
 export interface LoginCredentials {

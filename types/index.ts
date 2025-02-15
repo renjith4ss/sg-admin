@@ -1,4 +1,4 @@
-export type Permission = 'read' | 'write' | 'delete' | 'admin'
+import type { Permission } from "./permissions"
 
 export interface Organization {
   id: string
