@@ -9,7 +9,9 @@ export type AdminUser = {
   active: boolean
 }
 
-export type AdminUserForm = Omit<AdminUser, 'id'>
+export type AdminUserForm = Omit<AdminUser, 'id' | 'roles'> & {
+  roles: string[]
+}
 
 export type AdminsState = {
   admins: AdminUser[],

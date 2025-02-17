@@ -108,9 +108,12 @@
 </template>
 
 <script setup lang="ts">
+import { useAuthStore } from '~/stores/auth'
+
 const colorMode = useColorMode()
 const router = useRouter()
-const { logout } = useAuthStore()
+const authStore = useAuthStore()
+const { logout } = authStore
 
 // Dummy user data - replace with real data later
 const user = ref({
@@ -127,49 +130,63 @@ const userInitials = computed(() => {
     .toUpperCase()
 })
 
-const navigationItems = [
-  {
-    name: 'Dashboard',
-    to: '/',
-    icon: 'ph:squares-four'
-  },
-  {
-    name: 'Tenants',
-    to: '/tenants',
-    icon: 'ph:buildings'
-  },
-  {
-    name: 'Users',
-    to: '/users',
-    icon: 'ph:users'
-  },
-  {
-    name: 'Admins',
-    to: '/admins',
-    icon: 'ph:user-gear'
-  },
-  {
-    name: 'Roles',
-    to: '/roles',
-    icon: 'ph:user-focus'
-  },
-  {
-    name: 'Displays',
-    to: '/displays',
-    icon: 'ph:monitor'
-  },
+// Get current user permissions
+const userPermissions = computed(() => authStore.currentUser?.permissions || [])
 
-  {
-    name: 'Plans',
-    to: '/plans',
-    icon: 'ph:currency-circle-dollar'
-  },
-  {
-    name: 'Invoices',
-    to: '/invoices',
-    icon: 'ph:receipt'
+// Navigation items as a computed property based on permissions
+const navigationItems = computed(() => {
+  const baseItems = [
+    {
+      name: 'Dashboard',
+      to: '/',
+      icon: 'ph:squares-four'
+    },
+    {
+      name: 'Tenants',
+      to: '/tenants',
+      icon: 'ph:buildings'
+    },
+    {
+      name: 'Users',
+      to: '/users',
+      icon: 'ph:users'
+    }
+  ]
+
+  // Only add admins link if user has admin.read permission
+  if (userPermissions.value.includes('admin.read')) {
+    baseItems.push({
+      name: 'Admins',
+      to: '/admins',
+      icon: 'ph:user-gear'
+    })
   }
-]
+
+  // Add remaining items
+  return [
+    ...baseItems,
+    {
+      name: 'Roles',
+      to: '/roles',
+      icon: 'ph:user-focus'
+    },
+    {
+      name: 'Displays',
+      to: '/displays',
+      icon: 'ph:monitor'
+    },
+    {
+      name: 'Plans',
+      to: '/plans',
+      icon: 'ph:currency-circle-dollar'
+    },
+    {
+      name: 'Invoices',
+      to: '/invoices',
+      icon: 'ph:receipt'
+    }
+  ]
+})
 
 async function handleLogout() {
   await logout()

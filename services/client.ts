@@ -27,11 +27,12 @@ class ApiClient {
     }
   }
 
-  protected async post<T>(endpoint: string, body: any): Promise<T> {
+  protected async post<T>(endpoint: string, body: any, options: { headers?: Record<string, string> } = {}): Promise<T> {
     try {
       const response = await this.pb.send(`${this.BASE_ENDPOINT}/${endpoint}`, {
         method: 'POST',
-        body
+        body,
+        headers: options.headers
       })
       return response as T
     } catch (err: any) {

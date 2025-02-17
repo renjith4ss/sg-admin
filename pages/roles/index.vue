@@ -95,6 +95,7 @@
                 <TableCell>
                   <div class="flex items-center gap-2">
                     <span class="font-medium">{{ role.name }}</span>
+                    <Icon v-if="role.protected" name="heroicons:shield-check" class="h-3.5 w-3.5 text-red-500" />
                   </div>
                 </TableCell>
                 <TableCell>{{ role.description }}</TableCell>

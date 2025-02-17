@@ -1,5 +1,9 @@
 // constants
 export const PERMISSIONS = [
+    "admin.create",
+    "admin.read",
+    "admin.delete",
+
     "role.create",
     "role.read",
     "role.delete",

@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-6">
+  <div v-if="hasRequiredPermission" class="space-y-6">
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
@@ -8,7 +8,7 @@
           Manage admin users
         </p>
       </div>
-      <Button @click="handleCreateAdmin" class="gap-2">
+      <Button v-if="hasCreatePermission" @click="handleCreateAdmin" class="gap-2">
         <Icon name="heroicons:plus" class="h-5 w-5" />
         New Admin
       </Button>
@@ -57,7 +57,7 @@
         <h2 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
           Admins
         </h2>
-        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           <div
             v-for="admin in safeAdmins"
             :key="admin.id"
@@ -94,11 +94,16 @@
               </div>
             </div>
             <div class="mt-4 flex justify-end gap-2">
-              <Button variant="outline" size="sm" @click="editAdmin(admin)">
+              <Button 
+                v-if="hasEditPermission"
+                variant="outline" 
+                size="sm" 
+                @click="editAdmin(admin)"
+              >
                 <Icon name="heroicons:pencil-square" class="h-4 w-4" />
               </Button>
               <Button 
-                v-if="!isCurrentUser(admin)"
+                v-if="hasDeletePermission && !isCurrentUser(admin)"
                 variant="destructive" 
                 size="sm" 
                 @click="confirmDelete(admin)"
@@ -164,11 +169,16 @@
                 </TableCell>
                 <TableCell>
                   <div class="flex items-center gap-2">
-                    <Button variant="outline" size="sm" @click="editAdmin(admin)">
+                    <Button 
+                      v-if="hasEditPermission"
+                      variant="outline" 
+                      size="sm" 
+                      @click="editAdmin(admin)"
+                    >
                       <Icon name="heroicons:pencil-square" class="h-4 w-4" />
                     </Button>
                     <Button 
-                      v-if="!isCurrentUser(admin)"
+                      v-if="hasDeletePermission && !isCurrentUser(admin)"
                       variant="destructive" 
                       size="sm" 
                       @click="confirmDelete(admin)"
@@ -222,6 +232,23 @@
         </DialogHeader>
         <form @submit.prevent="handleSubmit" class="space-y-4">
           <div class="space-y-4">
+            <!-- Active Status Switch -->
+            <div class="flex items-center justify-between">
+              <div class="space-y-0.5">
+                <Label>Status</Label>
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                  {{ formData.active ? 'Active' : 'Inactive' }} user
+                </p>
+              </div>
+              <Switch
+                :checked="formData.active"
+                @update:checked="(checked: boolean) => formData.active = checked"
+                :aria-label="formData.active ? 'Deactivate user' : 'Activate user'"
+              />
+            </div>
+
+            <Separator />
+
             <div>
               <Label for="name">Name</Label>
               <Input id="name" v-model="formData.name" type="text" required />
@@ -256,21 +283,13 @@
                   class="flex items-center gap-2"
                 >
                   <Checkbox 
-                    :checked="formData.roles.some(r => r.id === role.id)"
+                    :checked="formData.roles.includes(role.id)"
                     @update:checked="(checked: boolean) => toggleRole(role, checked)"
                     :id="role.id"
                   />
                   <Label :for="role.id">{{ role.name }}</Label>
                 </div>
               </div>
-            </div>
-
-            <div class="flex items-center gap-2">
-              <Checkbox 
-                v-model="formData.active"
-                id="active"
-              />
-              <Label for="active">Active</Label>
             </div>
           </div>
 
@@ -338,7 +357,10 @@
 
 <script setup lang="ts">
 import { Icon } from '#components'
+import { useRouter } from 'vue-router'
 import { Button } from '~/components/ui/button'
+import { Separator } from '~/components/ui/separator'
+import { Switch } from '~/components/ui/switch'
 import { useAdminsQuery } from '~/composables/useAdminsQuery'
 import { useRolesQuery } from '~/composables/useRolesQuery'
 import { useAuthStore } from '~/stores/auth'
@@ -372,7 +394,7 @@ const initialFormData: AdminUserForm & { password?: string; confirmPassword?: st
   name: '',
   email: '',
   photo: undefined,
-  roles: [] as Role[],
+  roles: [] as string[],
   active: true,
   password: '',
   confirmPassword: ''
@@ -400,6 +422,34 @@ const isCurrentUser = (admin: AdminUser) => {
   return currentUser.value?.id === admin.id
 }
 
+// Add permission check logic after the imports
+const router = useRouter()
+
+// Check if user has required permission
+const hasRequiredPermission = computed(() => {
+  return currentUser.value?.permissions?.includes('admin.read') ?? false
+})
+
+// Add permission check computed properties
+const hasCreatePermission = computed(() => {
+  return currentUser.value?.permissions?.includes('admin.create') ?? false
+})
+
+const hasEditPermission = computed(() => {
+  return currentUser.value?.permissions?.includes('admin.create') ?? false
+})
+
+const hasDeletePermission = computed(() => {
+  return currentUser.value?.permissions?.includes('admin.delete') ?? false
+})
+
+// Redirect if no permission
+onMounted(() => {
+  if (!hasRequiredPermission.value) {
+    router.push('/')
+  }
+})
+
 // Methods
 const resetForm = () => {
   formData.value = { ...initialFormData }
@@ -413,12 +463,12 @@ const handleCreateAdmin = () => {
   showCreateDialog.value = true
 }
 
-const editAdmin = (admin: AdminUserForm) => {
+const editAdmin = (admin: AdminUser) => {
   formData.value = {
     name: admin.name,
     email: admin.email,
     photo: admin.photo,
-    roles: [...admin.roles],
+    roles: admin.roles.map(role => role.id),
     active: admin.active
   }
   originalFormData.value = JSON.parse(JSON.stringify(formData.value))
@@ -435,9 +485,9 @@ const handleDialogClose = (value: boolean) => {
 
 const toggleRole = (role: Role, checked: boolean) => {
   if (checked) {
-    formData.value.roles.push(role)
+    formData.value.roles.push(role.id)
   } else {
-    formData.value.roles = formData.value.roles.filter(r => r.id !== role.id)
+    formData.value.roles = formData.value.roles.filter(r => r !== role.id)
   }
 }
 

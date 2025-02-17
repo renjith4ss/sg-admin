@@ -1,5 +1,5 @@
 import type PocketBase from 'pocketbase'
-import type { AdminUser } from '~/types/admins'
+import type { AdminUser, AdminUserForm } from '~/types/admins'
 import ApiClient from '../client'
 export class AdminsApi extends ApiClient {
   private readonly resource = 'admins'
@@ -21,11 +21,11 @@ export class AdminsApi extends ApiClient {
     return this.get(`${this.resource}`)
   }
 
-  async create(adminData: Omit<AdminUser, 'id' >): Promise<AdminUser | null> {
+  async create(adminData: Omit<AdminUserForm, 'id' >): Promise<AdminUser | null> {
     return this.post(`${this.resource}`, adminData)
   }
 
-  async update(id: string, adminData: Partial<Omit<AdminUser, 'id'>>): Promise<AdminUser | null> {
+  async update(id: string, adminData: Partial<Omit<AdminUserForm, 'id'>>): Promise<AdminUser | null> {
     return this.patch(`${this.resource}/${id}`, adminData)
   }
 

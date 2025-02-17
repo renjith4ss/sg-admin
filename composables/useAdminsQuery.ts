@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import type { AdminUser } from '~/types/admins'
+import type { AdminUser, AdminUserForm } from '~/types/admins'
 import type { Api } from '~/types/api'
 
 export const useAdminsQuery = () => {
@@ -19,7 +19,7 @@ export const useAdminsQuery = () => {
 
   // Create admin mutation
   const useCreateAdmin = () => useMutation({
-    mutationFn: (adminData: Omit<AdminUser, 'id'>) => 
+    mutationFn: (adminData: Omit<AdminUserForm, 'id'>) => 
       ($api as Api).admins.create(adminData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admins'] })
@@ -30,7 +30,7 @@ export const useAdminsQuery = () => {
   const useUpdateAdmin = () => useMutation({
     mutationFn: ({ id, data }: { 
       id: string, 
-      data: Partial<Omit<AdminUser, 'id'>>
+      data: Partial<Omit<AdminUserForm, 'id'>>
     }) => ($api as Api).admins.update(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admins'] })
